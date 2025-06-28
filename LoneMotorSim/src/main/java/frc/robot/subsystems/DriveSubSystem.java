@@ -17,6 +17,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.BobsChassis;
 import frc.robot.RobotContainer;
@@ -50,10 +51,11 @@ public class DriveSubSystem extends SubsystemBase {
     
     
     leftFXSim.setSupplyVoltage(RobotController.getBatteryVoltage());
-    leftEncoderSim.setSupplyVoltage(RobotController.getBatteryVoltage());
+    SmartDashboard.putNumber("mV", RobotController.getBatteryVoltage());
 
-    var motorVoltage = leftFXSim.getMotorVoltageMeasure();
-    dcSim.setInputVoltage(RobotContainer.joyingStik.getLeftX());
+    //dcSim.setInputVoltage(RobotContainer.joyingStik.getLeftX());
+    //dcSim.update(0.020);
+    dcSim.setInput(leftFXSim.getMotorVoltage());
     dcSim.update(0.020);
     
     leftFXSim.setRawRotorPosition(dcSim.getAngularPosition().times(BobsChassis.kGearRatio));
@@ -63,5 +65,6 @@ public class DriveSubSystem extends SubsystemBase {
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+    leftFX.set(RobotContainer.joyingStik.getLeftX());
   }
 }

@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.BobsChassis;
+import frc.robot.RobotContainer;
 
 public class DriveSubSystem extends SubsystemBase {
   /** Creates a new DriveSubSystem. */
@@ -42,8 +43,6 @@ public class DriveSubSystem extends SubsystemBase {
   public void bob() {
     leftFXSim.Orientation = ChassisReference.CounterClockwise_Positive;
     leftEncoderSim.Orientation = ChassisReference.CounterClockwise_Positive;
-
-     
   }
 
   @Override
@@ -54,8 +53,7 @@ public class DriveSubSystem extends SubsystemBase {
     leftEncoderSim.setSupplyVoltage(RobotController.getBatteryVoltage());
 
     var motorVoltage = leftFXSim.getMotorVoltageMeasure();
-
-    dcSim.setInputVoltage(motorVoltage.in(Volts));
+    dcSim.setInputVoltage(RobotContainer.joyingStik.getLeftX());
     dcSim.update(0.020);
     
     leftFXSim.setRawRotorPosition(dcSim.getAngularPosition().times(BobsChassis.kGearRatio));

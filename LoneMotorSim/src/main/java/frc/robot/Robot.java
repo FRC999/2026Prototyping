@@ -78,15 +78,12 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
-    SmartDashboard.putNumber("EncoderValue", RobotContainer.driveSubsystem.leftEncoder.getAbsolutePosition().getValueAsDouble());
+    SmartDashboard.putString("EncoderValue", RobotContainer.driveSubsystem.leftEncoderSim.toString());
   }
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {
-    RobotContainer.driveSubsystem.dcSim.setInputVoltage(RobotContainer.joyingStik.getLeftX()); 
-
-  }
+  public void teleopPeriodic() {}
 
   @Override
   public void testInit() {
@@ -104,7 +101,7 @@ public class Robot extends TimedRobot {
     RobotContainer.driveSubsystem.bob();
   }
 
-  /** This function is called periodically whilst in simulation. */
-  @Override
-  public void simulationPeriodic() {}
+  // /** This function is called periodically whilst in simulation. */
+  // @Override
+  // public void simulationPeriodic() {}
 }

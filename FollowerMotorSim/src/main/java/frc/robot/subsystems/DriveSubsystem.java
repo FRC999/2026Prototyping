@@ -66,6 +66,7 @@ public class DriveSubsystem extends SubsystemBase {
 
     var motorVoltage = leaderSimState.getMotorVoltageMeasure();
     SmartDashboard.putNumber("mV", motorVoltage.in(Volts));
+    SmartDashboard.putNumber("bV",RobotController.getBatteryVoltage());
 
     // leadDCMotorSim.setInputVoltage(motorVoltage.in(Volts)*RobotContainer.xboxController.getLeftX());
     leadDCMotorSim.setInput(leaderSimState.getMotorVoltage());

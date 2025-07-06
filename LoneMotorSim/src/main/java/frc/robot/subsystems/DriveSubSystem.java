@@ -38,7 +38,6 @@ public class DriveSubSystem extends SubsystemBase {
     dcSim = new DCMotorSim(
         LinearSystemId.createDCMotorSystem(DCMotor.getKrakenX60(1), 0.001, BobsChassis.kGearRatio),
         DCMotor.getKrakenX60(1));
-
   }
 
   public void bob() {

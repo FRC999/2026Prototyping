@@ -41,17 +41,17 @@ public class DriveSubsystem extends SubsystemBase {
         DCMotor.getKrakenX60(1));
     leadMotor = new TalonFX(1);
     followMotor = new TalonFX(2);
-    configureMotors();
 
     leaderSimState = leadMotor.getSimState();
     followerSimState = followMotor.getSimState();
+    configureMotors();
   }
 
   public void configureMotors() {
     // This is the only place that you set the follow motor to follow the lead motor
     leadMotor.getConfigurator().apply(new TalonFXConfiguration());
     followMotor.getConfigurator().apply(new TalonFXConfiguration());
-    followMotor.setControl(new Follower(leadMotor.getDeviceID(), false));
+    followMotor.setControl(new Follower(leadMotor.getDeviceID(), true));
   }
 
   public void simulationInit() {
@@ -92,5 +92,7 @@ public class DriveSubsystem extends SubsystemBase {
      * and give the follower the same power as leader
      */
     leadMotor.set(RobotContainer.xboxController.getLeftX());
+
+    SmartDashboard.putNumber("le", leadMotor.getPosition().getValueAsDouble());
   }
 }

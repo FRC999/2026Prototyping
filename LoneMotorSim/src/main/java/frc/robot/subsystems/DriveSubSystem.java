@@ -26,15 +26,15 @@ public class DriveSubSystem extends SubsystemBase {
   /** Creates a new DriveSubSystem. */
   public TalonFX leftFX;
   public TalonFXSimState leftFXSim;
-  public CANcoder leftEncoder;
-  public CANcoderSimState leftEncoderSim;
+  // public CANcoder leftEncoder;
+  // public CANcoderSimState leftEncoderSim;
   public DCMotorSim dcSim;
 
   public DriveSubSystem() {
     leftFX = new TalonFX(1);
     leftFXSim = leftFX.getSimState();
-    leftEncoder = new CANcoder(1);
-    leftEncoderSim = leftEncoder.getSimState();
+    // leftEncoder = new CANcoder(1);
+    // leftEncoderSim = leftEncoder.getSimState();
     dcSim = new DCMotorSim(
         LinearSystemId.createDCMotorSystem(DCMotor.getKrakenX60(1), 0.001, BobsChassis.kGearRatio),
         DCMotor.getKrakenX60(1));
@@ -42,7 +42,7 @@ public class DriveSubSystem extends SubsystemBase {
 
   public void bob() {
     leftFXSim.Orientation = ChassisReference.CounterClockwise_Positive;
-    leftEncoderSim.Orientation = ChassisReference.CounterClockwise_Positive;
+    // leftEncoderSim.Orientation = ChassisReference.CounterClockwise_Positive;
   }
 
   @Override

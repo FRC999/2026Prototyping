@@ -4,6 +4,8 @@
 
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.Utils;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
@@ -21,6 +23,12 @@ public class QuestNavSubsystem extends SubsystemBase {
   public QuestNavSubsystem() {
     questNav = new QuestNav();
 
+    resetToZeroPose();
+
+  }
+
+  public void resetToZeroPose() {
+    questNav.setPose(new Pose2d(0,0,Rotation2d.kZero));
   }
 
   public Pose2d getNavPose() {
@@ -30,9 +38,21 @@ public class QuestNavSubsystem extends SubsystemBase {
     return qPose;  
   }
 
+  public double getQTimeStamp() {
+    return questNav.getDataTimestamp();
+  }
+
+  public double getQAppTimeStamp() {
+    return questNav.getAppTimestamp();
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
     SmartDashboard.putString("qPose: ", getNavPose().toString());
+    SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
+    SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
+    SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
+    
   }
 }

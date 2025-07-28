@@ -8,14 +8,19 @@ import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.path.PathPlannerPath;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
-
+import frc.robot.commands.QuestNavTrajectoryTest;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.QuestNavSubsystem;
@@ -38,10 +43,12 @@ public class RobotContainer {
 
     private final CommandXboxController joystick = new CommandXboxController(0);
 
-    public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+    public static final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
     public RobotContainer() {
         configureBindings();
+
+        FollowPathCommand.warmupCommand().schedule();
     }
 
     private void configureBindings() {
@@ -79,7 +86,47 @@ public class RobotContainer {
         joystick.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
 
         drivetrain.registerTelemetry(logger::telemeterize);
+
+        joystick.x().onTrue(new QuestNavTrajectoryTest())
+                    .onFalse(stopRobotCommand());
     }
+
+    public Command stopRobotCommand() {
+        System.out.println("***Stopping Robot");
+        return drivetrain.applyRequest(() ->
+                drive.withVelocityX(0) // Drive forward with negative Y (forward)
+                    .withVelocityY(0) // Drive left with negative X (left)
+                    .withRotationalRate(0) // Drive counterclockwise with negative X (left)
+            );
+    }
+
+    public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
+      boolean shouldResetOdometryToStartingPose, boolean flipTrajectory) {
+    try {
+      // Load the path you want to follow using its name in the GUI
+      PathPlannerPath path = PathPlannerPath.fromPathFile(tr);
+
+      if (flipTrajectory) {
+        path = path.flipPath();
+      }
+
+      Pose2d startPose = path.getStartingHolonomicPose().get(); // reset odometry, as PP may not do so
+
+      // Create a path following command using AutoBuilder. This will also trigger
+      // event markers.
+      if (! shouldResetOdometryToStartingPose) {
+        return AutoBuilder.followPath(path);
+      } else { // reset odometry the right way
+        // return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+        return Commands.sequence(AutoBuilder.resetOdom(startPose));
+      }
+    } catch (Exception e) {
+      DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
+      return Commands.none();
+    }
+  }
+
+
 
     public Command getAutonomousCommand() {
         return Commands.print("No autonomous command configured");

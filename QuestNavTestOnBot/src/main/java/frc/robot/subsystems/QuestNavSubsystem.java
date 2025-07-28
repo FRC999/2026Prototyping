@@ -15,7 +15,7 @@ import gg.questnav.questnav.QuestNav;
 
 public class QuestNavSubsystem extends SubsystemBase {
   QuestNav questNav;
-  Transform2d ROBOT_TO_QUEST = new Transform2d(-0.4, -0.3, Rotation2d.k180deg);
+  Transform2d ROBOT_TO_QUEST = new Transform2d(0.4, 0.3, Rotation2d.k180deg);
 
 
 
@@ -33,9 +33,9 @@ public class QuestNavSubsystem extends SubsystemBase {
 
   public Pose2d getNavPose() {
     Pose2d qPose = questNav.getPose();
-    //Pose2d robotPose = qPose.transformBy(ROBOT_TO_QUEST.inverse());
-    //return robotPose;
-    return qPose;  
+    Pose2d robotPose = qPose.transformBy(ROBOT_TO_QUEST.inverse());
+    return robotPose;
+    // return qPose;  
   }
 
   public double getQTimeStamp() {
@@ -44,6 +44,15 @@ public class QuestNavSubsystem extends SubsystemBase {
 
   public double getQAppTimeStamp() {
     return questNav.getAppTimestamp();
+  }
+
+  public void resetQuestOdometry(Pose2d robotPose){
+    
+    // Transform by the offset to get the Quest pose
+    Pose2d questPose = robotPose.transformBy(ROBOT_TO_QUEST);
+
+    // Send the reset operation
+    questNav.setPose(questPose);
   }
 
   @Override

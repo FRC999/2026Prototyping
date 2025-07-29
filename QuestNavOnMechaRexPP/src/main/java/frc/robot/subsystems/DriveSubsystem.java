@@ -14,7 +14,14 @@ import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Constants.SwerveConstants.SwerveChassis;
 import frc.robot.Constants.SwerveConstants.SwerveChassis.SwerveModuleConstantsEnum;
@@ -24,6 +31,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
   Pigeon2 imu;
   private double previousOmegaRotationCommand;
+
+  /** Swerve request to apply during robot-centric path following */
+  private final SwerveRequest.ApplyRobotSpeeds m_pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
+
 
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(SwerveChassis.MaxSpeed * 0.1).withRotationalDeadband(SwerveChassis.MaxAngularRate * 0.1) // Add a 10% deadband
@@ -41,7 +52,9 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
       TalonFX::new, TalonFX::new, CANcoder::new,
       TunerConstants.DrivetrainConstants, OdometryUpdateFrequency, configureSwerveChassis());
     imu = this.getPigeon2();
-}
+
+    configureAutoBuilder();
+  }
 
   public static SwerveModuleConstants[] configureSwerveChassis(){
     return new SwerveModuleConstants[] {
@@ -87,6 +100,20 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     };
   }
 
+   public void setOdometryPoseToSpecificPose(Pose2d p) {
+    this.resetPose(p);
+  }
+
+  public void stopRobot(){
+    drive(0,0,0);
+  }
+
+  public Pose2d getPose() {
+    //System.out.println("cp: " + this.getState().Pose);
+    return this.getState().Pose;
+  }
+
+
   public void drive(double xV_m_per_s, double yV_m_per_s, double omega_rad_per_s) {
     this.setControl(
       drive.withVelocityX(xV_m_per_s)
@@ -100,8 +127,39 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     return -imu.getPitch().getValueAsDouble();
   }
 
+  private void configureAutoBuilder() {
+    try {
+      var config = RobotConfig.fromGUISettings();
+      AutoBuilder.configure(
+          () -> getState().Pose, // Supplier of current robot pose
+          this::resetPose, // Consumer for seeding pose against auto
+          () -> getState().Speeds, // Supplier of current robot speeds
+          // Consumer of ChassisSpeeds and feedforwards to drive the robot
+          (speeds, feedforwards) -> setControl(
+              m_pathApplyRobotSpeeds.withSpeeds(speeds)
+                  .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
+                  .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())),
+          new PPHolonomicDriveController(
+              // PID constants for translation
+              new PIDConstants(10, 0, 0),
+              // PID constants for rotation
+              new PIDConstants(7, 0, 0)),
+          config,
+          // Assume the path needs to be flipped for Red vs Blue, this is normally the
+          // case
+          //() -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+          () -> false,
+          this // Subsystem for requirements
+      );
+    } catch (Exception ex) {
+      DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", ex.getStackTrace());
+    }
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+
+    SmartDashboard.putString("Bot Pose: ", getPose().toString());
   }
 }

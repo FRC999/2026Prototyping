@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OIContants.ControllerDevice;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.commands.DriveManuallyCommand;
@@ -11,8 +12,23 @@ import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.QuestNavSubsystem;
 
+import static edu.wpi.first.units.Units.Rotation;
+
+import java.util.List;
+
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.path.GoalEndState;
+import com.pathplanner.lib.path.IdealStartingState;
+import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.path.Waypoint;
+
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
@@ -28,7 +44,8 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   public static final DriveSubsystem driveSubsystem = new DriveSubsystem();
-  public static final ArmSubsystem armSubsystem = new ArmSubsystem();
+  public static final QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
+  // public static final ArmSubsystem armSubsystem = new ArmSubsystem();
 
   public static Controller xboxDriveController = new Controller(ControllerDevice.XBOX_CONTROLLER);
 
@@ -69,18 +86,23 @@ public class RobotContainer {
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.
     m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
-    testArm();
-  }
-
-  private void testArm() {
-    new JoystickButton(xboxDriveController, 1)
-      .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
-      .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
+    // testArm();
 
     new JoystickButton(xboxDriveController, 2)
-      .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
-      .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
+      .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose2d(1, 2, Rotation2d.kZero)))
+      .andThen(new InstantCommand(() -> driveSubsystem.setOdometryPoseToSpecificPose(new Pose2d(1, 2, Rotation2d.kZero))))
+      );
   }
+
+  // private void testArm() {
+  //   new JoystickButton(xboxDriveController, 1)
+  //     .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
+  //     .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
+
+  //   new JoystickButton(xboxDriveController, 2)
+  //     .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
+  //     .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
+  // }
 
     // Driver preferred controls
     private double getDriverXAxis() {
@@ -97,6 +119,33 @@ public class RobotContainer {
       //return -xboxController.getLeftStickOmega();
       return -xboxDriveController.getLeftStickX() * 0.6;
     }
+
+
+
+
+    public static Command runTrajectory2PosesSlow(Pose2d startPose, Pose2d endPose,
+      boolean shouldResetOdometryToStartingPose) {
+    try {
+      List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
+
+      PathPlannerPath path = new PathPlannerPath(
+          waypoints,
+          AutoConstants.testPathCconstraints,
+          new IdealStartingState(0, startPose.getRotation()),
+          new GoalEndState(0, endPose.getRotation()));
+      path.preventFlipping = true;
+      driveSubsystem.setOdometryPoseToSpecificPose(startPose); // reset odometry, as PP may not do so
+      if (!shouldResetOdometryToStartingPose) {
+        return AutoBuilder.followPath(path);
+      } else { // reset odometry the right way
+        System.out.println("== Driving from "+startPose+" to "+endPose);
+        return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+      }
+    } catch (Exception e) {
+      DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
+      return Commands.none();
+    }
+  }
 
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.

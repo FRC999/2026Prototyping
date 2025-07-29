@@ -23,6 +23,7 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
+import com.pathplanner.lib.path.PathConstraints;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Current;
@@ -30,6 +31,7 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.SwerveConstants.SwerveChassis;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -404,6 +406,33 @@ public final class Constants {
 																// PID
 
 		}
+	}
+
+	public static final class AutoConstants {
+		public static PathConstraints pathCconstraints = new PathConstraints(
+			SwerveChassis.MaxSpeed,
+			SwerveChassis.maxAcceleration,
+			SwerveChassis.MaxAngularRate,
+			SwerveChassis.maxAngularAcceleration,
+			12, // Volts - nomonal battery
+			false // constraints shold not be unlimited
+			);
+
+		public static PathConstraints testPathCconstraints = new PathConstraints(
+				2.5,
+				2.0,
+				SwerveChassis.MaxAngularRate,
+				SwerveChassis.maxAngularAcceleration,
+				12, // Volts - nomonal battery
+				false // constraints shold not be unlimited
+				);
+
+		public static enum autoPoses {
+
+			//
+
+		}
+		public static final double panReefTolerance = 0.02; // tolerance in meters for reef panning
 	}
 
 	public static class IMUConstants {

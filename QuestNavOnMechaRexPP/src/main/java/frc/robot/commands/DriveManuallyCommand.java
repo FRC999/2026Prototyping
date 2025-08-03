@@ -31,20 +31,23 @@ public class DriveManuallyCommand extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    double xInput = mVxSupplier.getAsDouble();
-		double yInput = mVySupplier.getAsDouble();
-		double omegaInput = mOmegaSupplier.getAsDouble();
-
-    //System.out.println("X: " + xInput + " Y: " + yInput + " Z: " + omegaInput);
 
 
-    RobotContainer.driveSubsystem.drive(
-      xInput * SwerveChassis.MaxSpeed,
-     //0,
-      yInput * SwerveChassis.MaxSpeed,
-      //0
-      omegaInput * SwerveChassis.MaxAngularRate
-    );
+
+    // double xInput = mVxSupplier.getAsDouble();
+		// double yInput = mVySupplier.getAsDouble();
+		// double omegaInput = mOmegaSupplier.getAsDouble();
+
+    // //System.out.println("X: " + xInput + " Y: " + yInput + " Z: " + omegaInput);
+
+
+    // RobotContainer.driveSubsystem.drive(
+    //   xInput * SwerveChassis.MaxSpeed,
+    //  //0,
+    //   yInput * SwerveChassis.MaxSpeed,
+    //   //0
+    //   omegaInput * SwerveChassis.MaxAngularRate
+    //);
   }
 
   // Called once the command ends or is interrupted.

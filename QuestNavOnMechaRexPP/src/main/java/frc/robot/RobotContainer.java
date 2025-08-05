@@ -54,6 +54,12 @@ public class RobotContainer {
 
     configureDriverInterface();
 
+    driveSubsystem.setDefaultCommand(
+      new DriveManuallyCommand(
+          () -> getDriverXAxis(),
+          () -> getDriverYAxis(),
+          () -> getDriverOmegaAxis()));
+
     // driveSubsystem.setDefaultCommand(
     //     new DriveManuallyCommand(
     //         () -> getDriverXAxis(),
@@ -83,15 +89,7 @@ public class RobotContainer {
       .onTrue(new PrintCommand("Pose: " + driveSubsystem.getPose().toString()));
   }
 
-  // private void testArm() {
-  //   new JoystickButton(xboxDriveController, 1)
-  //     .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
-  //     .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
-
-  //   new JoystickButton(xboxDriveController, 2)
-  //     .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
-  //     .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
-  // }
+  
 
     // Driver preferred controls
     private double getDriverXAxis() {

@@ -35,7 +35,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(SwerveChassis.MaxSpeed * 0.1).withRotationalDeadband(SwerveChassis.MaxAngularRate * 0.1) // Add a 10% deadband
       .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-
+  
       /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     super(
@@ -175,7 +175,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
   public void periodic() {
     // This method will be called once per scheduler run
 
-    SmartDashboard.putString("Bot Pose: ", this.getState().Pose.toString());
+    SmartDashboard.putString("Bot Pose: ", this.getState().Pose.toString());  
     SmartDashboard.putString("Bot Speed: ", this.getState().Speeds.toString());
     //SmartDashboard.putString("Module Position: ", this.getState().ModulePositions.toString());
 

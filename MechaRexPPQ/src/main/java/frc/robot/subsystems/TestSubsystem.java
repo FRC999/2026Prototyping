@@ -14,6 +14,6 @@ public class TestSubsystem extends SubsystemBase {
   public void periodic() {
     // This method will be called once per scheduler run
 
-    System.out.println("TS");
+   // System.out.println("TS");
   }
 }

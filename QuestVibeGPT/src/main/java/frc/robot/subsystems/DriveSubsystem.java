@@ -12,6 +12,7 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -39,11 +40,9 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants.SwerveModuleConstan
  * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
  * Subsystem so it can easily be used in command-based projects.
  */
-public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements Subsystem {
+public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements Subsystem {
     // Requests moved from RobotContainer:
-    private final com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric drive = new com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric()
-        .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatio)
-        .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatio);
+    
     private final com.ctre.phoenix6.swerve.SwerveRequest.SwerveDriveBrake brake = new com.ctre.phoenix6.swerve.SwerveRequest.SwerveDriveBrake();
     private final com.ctre.phoenix6.swerve.SwerveRequest.PointWheelsAt point = new com.ctre.phoenix6.swerve.SwerveRequest.PointWheelsAt();
     private final com.ctre.phoenix6.swerve.SwerveRequest.Idle idle = new com.ctre.phoenix6.swerve.SwerveRequest.Idle();
@@ -51,6 +50,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
     private static final double kSimLoopPeriod = 0.005; // 5 ms
     private Notifier simNotifier = null;
     private double lastSimTime;
+    private boolean isRobotCentric = false;
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -66,6 +66,17 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
 
     /** Swerve request to apply during robot-centric path following */
     private final SwerveRequest.ApplyRobotSpeeds pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
+
+    private final com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric drive = new com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric()
+        .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
+        .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular)
+        .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+    
+    private final SwerveRequest.RobotCentric driveRobotCentric = new SwerveRequest.RobotCentric()
+        .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
+        .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular) // Add a 10% deadband
+        .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric
+                                                             // driving in open loop
 
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine sysIdRoutineTranslation = new SysIdRoutine(
@@ -141,8 +152,8 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
      */
     
     /** Creates the drivetrain using Constants.SwerveConstants. */
-    public static CommandSwerveDrivetrain createDrivetrain() {
-        return new CommandSwerveDrivetrain(
+    public static DriveSubsystem createDrivetrain() {
+        return new DriveSubsystem(
             SwerveConstants.DrivetrainConstants,
             SwerveConstants.ConstantCreator.createModuleConstants(
                 SwerveModuleConstantsEnum.MOD0.getAngleMotorID(), SwerveModuleConstantsEnum.MOD0.getDriveMotorID(),
@@ -171,7 +182,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
         );
     }
 
-    public CommandSwerveDrivetrain(
+    public DriveSubsystem(
         SwerveDrivetrainConstants drivetrainConstants,
         SwerveModuleConstants<?, ?, ?>... modules
     ) {
@@ -185,6 +196,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
         // alex test
         // reset IMU to 0
         this.getPigeon2().setYaw(0);
+        configureAutoBuilder();
     }
 
     /**
@@ -200,7 +212,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
      *                                CAN FD, and 100 Hz on CAN 2.0.
      * @param modules                 Constants for each specific module
      */
-    public CommandSwerveDrivetrain(
+    public DriveSubsystem(
         SwerveDrivetrainConstants drivetrainConstants,
         double odometryUpdateFrequency,
         SwerveModuleConstants<?, ?, ?>... modules
@@ -211,6 +223,8 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
         if (Utils.isSimulation()) {
             startSimThread();
         }
+
+        configureAutoBuilder();
     }
 
     /**
@@ -232,7 +246,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
      *                                  and radians
      * @param modules                   Constants for each specific module
      */
-    public CommandSwerveDrivetrain(
+    public DriveSubsystem(
         SwerveDrivetrainConstants drivetrainConstants,
         double odometryUpdateFrequency,
         Matrix<N3, N1> odometryStandardDeviation,
@@ -389,4 +403,37 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain<TalonFX, TalonFX, 
     ) {
         super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds), visionMeasurementStdDevs);
     }
+
+    public void setRobotCentricTrue() {
+        isRobotCentric = true;
+      }
+    
+      public void setRobotCentricFalse() {
+        isRobotCentric = false;
+      }
+    
+      public boolean getRobotCentric() {
+        return isRobotCentric;
+      }
+
+      public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s) {
+        //System.out.println("X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + " o:" + omega_rad_per_s/SwerveChassis.MaxAngularRate);
+        //SmartDashboard.putString("Manual Drive Command Velocities","X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + " o:" + omega_rad_per_s);
+        this.setControl(
+          drive.withVelocityX(xVelocity_m_per_s)
+            .withVelocityY(yVelocity_m_per_s)
+            .withRotationalRate(omega_rad_per_s)
+        );
+      }
+
+      public void driveRobotCentric(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s) {
+        //System.out.println("X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + " o:" + omega_rad_per_s/SwerveChassis.MaxAngularRate);
+        //SmartDashboard.putString("Manual Drive Command Velocities","X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + " o:" + omega_rad_per_s);
+        this.setControl(
+          driveRobotCentric.withVelocityX(xVelocity_m_per_s)
+            .withVelocityY(yVelocity_m_per_s)
+            .withRotationalRate(omega_rad_per_s)
+        );
+      }
+    
 }

@@ -14,7 +14,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.units.measure.*;
-import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.DriveSubsystem;
 import static edu.wpi.first.units.Units.*;
 
 /**
@@ -33,6 +33,73 @@ public final class Constants {
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
 
+    public static class OIContants {
+
+      public static enum ControllerDeviceType {
+        LOGITECH,
+        PS5,
+        XBOX, // RightJ F/B, LeftJ L/R, L2/R2 - rotation
+        XBOX_ONEDRIVE // RIghtJ F/B/L/R, LeftJ - rotation
+      }
+  
+      public static enum ControllerDevice {
+        XBOX_CONTROLLER(
+            5, // Port Number for Xbox controller
+            ControllerDeviceType.XBOX,
+            0.03, // deadband X for Xbox
+            0.03, // deadband Y for Xbox //TODO: ALL DEADBAND FOR XBOX IS PLACEHOLDER
+            0.03, // deadband Omega for Xbox
+            false, // No cube controller configuration for Xbox yet
+            false);
+  
+        private ControllerDeviceType controllerDeviceType;
+        private int portNumber;
+        private double deadbandX;
+        private double deadbandY;
+        private double deadbandOmega;
+        private boolean cubeControllerLeftStick;
+        private boolean cubeControllerRightStick;
+  
+        ControllerDevice(int pn, ControllerDeviceType cdt, double dx, double dy, double dm, boolean ccL,
+            boolean ccR) {
+          this.portNumber = pn;
+          this.controllerDeviceType = cdt;
+          this.deadbandX = dx;
+          this.deadbandY = dy;
+          this.deadbandOmega = dm;
+          this.cubeControllerLeftStick = ccL;
+          this.cubeControllerRightStick = ccR;
+        }
+  
+        public ControllerDeviceType getControllerDeviceType() {
+          return controllerDeviceType;
+        }
+  
+        public int getPortNumber() {
+          return portNumber;
+        }
+  
+        public double getDeadbandX() {
+          return deadbandX;
+        }
+  
+        public double getDeadbandY() {
+          return deadbandY;
+        }
+  
+        public double getDeadbandOmega() {
+          return deadbandOmega;
+        }
+  
+        public boolean isCubeControllerLeftStick() {
+          return cubeControllerLeftStick;
+        }
+  
+        public boolean isCubeControllerRightStick() {
+          return cubeControllerRightStick;
+        }
+      }
+    }
     /** Swerve-wide constants and module mappings */
     public static final class SwerveConstants {
       private SwerveConstants() {
@@ -40,7 +107,8 @@ public final class Constants {
 
       public static final double MaxSpeed = 5.21; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s
-      public static final double DeadbandRatio = 0.10;
+      public static final double DeadbandRatioLinear = 0.02; //determined by calibration method 
+      public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
       public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot");
       public static final Pigeon2Configuration pigeonConfigs = null;

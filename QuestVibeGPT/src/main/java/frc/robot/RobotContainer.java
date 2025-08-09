@@ -6,6 +6,7 @@ package frc.robot;
 
 import frc.robot.Constants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
+import frc.robot.Constants.OperatorConstants.OIContants.ControllerDevice;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -23,15 +24,16 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.QuestNavTrajectoryTest;
 
-import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
 
 
 public class RobotContainer {
     public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
-    
+
      // kSpeedAt12Volts desired top speed
      // 3/4 of a rotation per second max angular velocity
 
@@ -39,61 +41,83 @@ public class RobotContainer {
     // Use open-loop control for drive motors
     private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
-    private final CommandXboxController joystick = new CommandXboxController(5);
-    
+    private final Controller xboxDriveController = new Controller(ControllerDevice.XBOX_CONTROLLER);
+    public static boolean isAllianceRed = false;
+    public static boolean isReversingControllerAndIMUForRed = true;
 
-    public static final CommandSwerveDrivetrain drivetrain = CommandSwerveDrivetrain.createDrivetrain();
+    public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
 
     public RobotContainer() {
         configureBindings();
 
+        driveSubsystem.setDefaultCommand(
+      new DriveManuallyCommand(
+          () -> getDriverXAxis(),
+          () -> getDriverYAxis(),
+          () -> getDriverOmegaAxis()));
         FollowPathCommand.warmupCommand().schedule();
     }
 
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
-        drivetrain.setDefaultCommand(
-            // Drivetrain will execute this command periodically
-            drivetrain.applyRequest(() ->
-                drivetrain.getDrive().withVelocityX(-joystick.getLeftY() * SwerveConstants.MaxSpeed) // Drive forward with negative Y (forward)
-                    .withVelocityY(-joystick.getLeftX() * SwerveConstants.MaxSpeed) // Drive left with negative X (left)
-                    .withRotationalRate(-joystick.getRightX() * SwerveConstants.MaxAngularRate) // Drive counterclockwise with negative X (left)
-            )
-        );
+        // driveSubsystem.setDefaultCommand(
+        //     // Drivetrain will execute this command periodically
+        //     driveSubsystem.applyRequest(() ->
+        //         driveSubsystem.getDrive().withVelocityX(-xboxDriveController.getLeftY() * SwerveConstants.MaxSpeed) // Drive forward with negative Y (forward)
+        //             .withVelocityY(-xboxDriveController.getLeftX() * SwerveConstants.MaxSpeed) // Drive left with negative X (left)
+        //             .withRotationalRate(-xboxDriveController.getRightX() * SwerveConstants.MaxAngularRate) // Drive counterclockwise with negative X (left)
+        //     )
+        // );
 
         // Idle while the robot is disabled. This ensures the configured
         // neutral mode is applied to the drive motors while disabled.
-        RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> drivetrain.getIdle()).ignoringDisable(true));
+        RobotModeTriggers.disabled().whileTrue(driveSubsystem.applyRequest(() -> driveSubsystem.getIdle()).ignoringDisable(true));
 
-        joystick.a().whileTrue(drivetrain.applyRequest(() -> drivetrain.getBrake()));
-        joystick.b().whileTrue(drivetrain.applyRequest(() ->
-            drivetrain.getPoint().withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
-        ));
+        // xboxDriveController.a().whileTrue(driveSubsystem.applyRequest(() -> driveSubsystem.getBrake()));
+        // xboxDriveController.b().whileTrue(driveSubsystem.applyRequest(() ->
+        //     driveSubsystem.getPoint().withModuleDirection(new Rotation2d(-xboxDriveController.getLeftY(), -xboxDriveController.getLeftX()))
+        // ));
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
-        joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-        joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-        joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-        joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+        // xboxDriveController.back().and(xboxDriveController.y()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kForward));
+        // xboxDriveController.back().and(xboxDriveController.x()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kReverse));
+        // xboxDriveController.start().and(xboxDriveController.y()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kForward));
+        // xboxDriveController.start().and(xboxDriveController.x()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kReverse));
 
-        // reset the field-centric heading on left bumper press
-        joystick.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
+        // // reset the field-centric heading on left bumper press
+        // xboxDriveController.leftBumper().onTrue(driveSubsystem.runOnce(() -> driveSubsystem.seedFieldCentric()));
 
-        drivetrain.registerTelemetry(logger::telemeterize);
+        driveSubsystem.registerTelemetry(logger::telemeterize);
 
-        joystick.x().onTrue(new QuestNavTrajectoryTest())
-                    .onFalse(stopRobotCommand());
+        // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
+        //             .onFalse(stopRobotCommand());
     }
 
     public Command stopRobotCommand() {
         System.out.println("***Stopping Robot");
-        return drivetrain.applyRequest(() ->
-                drivetrain.getDrive().withVelocityX(0) // Drive forward with negative Y (forward)
+        return driveSubsystem.applyRequest(() ->
+                driveSubsystem.getDrive().withVelocityX(0) // Drive forward with negative Y (forward)
                     .withVelocityY(0) // Drive left with negative X (left)
                     .withRotationalRate(0) // Drive counterclockwise with negative X (left)
             );
+    }
+
+     // Driver preferred controls
+     private double getDriverXAxis() {
+      //return -xboxController.getLeftStickY();
+      return -xboxDriveController.getRightStickY();
+    }
+  
+    private double getDriverYAxis() {
+      //return -xboxController.getLeftStickX();
+      return -xboxDriveController.getRightStickX();
+    }
+  
+    private double getDriverOmegaAxis() {
+      //return -xboxController.getLeftStickOmega();
+      return -xboxDriveController.getLeftStickX() * 0.6;
     }
 
     public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
@@ -120,6 +144,19 @@ public class RobotContainer {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
       return Commands.none();
     }
+  }
+
+  public static void setIfAllianceRed() {
+    var alliance = DriverStation.getAlliance();
+    if (! alliance.isPresent()) {
+        System.out.println("=== !!! Alliance not present !!! === Staying with the BLUE system");
+    } else {
+        isAllianceRed = alliance.get() == DriverStation.Alliance.Red;
+        System.out.println("*** RED Alliance: "+isAllianceRed);
+    }
+  }
+  public static void toggleReversingControllerAndIMUForRed() {
+    isReversingControllerAndIMUForRed = !isReversingControllerAndIMUForRed;
   }
 
 

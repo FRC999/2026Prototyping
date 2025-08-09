@@ -136,7 +136,7 @@ public final class Constants {
       public static final double kCoupleRatio = 3.5714285714285716;
       public static final ClosedLoopOutputType kDriveClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
-      public static final double kDriveGearRatio = 6.122448979591837;
+      public static final double kDriveGearRatio = 6.122448979591837 * (1.00/0.9);
       public static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
       public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFX_Integrated;
       public static final int kPigeonId = 15;

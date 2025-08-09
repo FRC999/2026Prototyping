@@ -19,14 +19,19 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.commands.DriveManuallyCommand;
+import frc.robot.commands.OneMeterForwardPPCommand;
+import frc.robot.commands.OneMeterForwardTurnPPCommand;
 import frc.robot.commands.QuestNavTrajectoryTest;
-
+import frc.robot.commands.ThreeMeterForwardPPCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
 
@@ -49,6 +54,7 @@ public class RobotContainer {
 
     public RobotContainer() {
         configureBindings();
+        testTrajectory();
 
         driveSubsystem.setDefaultCommand(
       new DriveManuallyCommand(
@@ -104,19 +110,29 @@ public class RobotContainer {
             );
     }
 
+    private void testTrajectory() {
+      new JoystickButton(xboxDriveController, 1)
+        .onTrue(new OneMeterForwardTurnPPCommand());
+        new JoystickButton(xboxDriveController, 2)
+        .onTrue(new ThreeMeterForwardPPCommand());
+    }
+
      // Driver preferred controls
      private double getDriverXAxis() {
       //return -xboxController.getLeftStickY();
+      // SmartDashboard.putNumber("X-Axis: ", -xboxDriveController.getRightStickY());
       return -xboxDriveController.getRightStickY();
     }
   
     private double getDriverYAxis() {
       //return -xboxController.getLeftStickX();
+      // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
       return -xboxDriveController.getRightStickX();
     }
   
     private double getDriverOmegaAxis() {
       //return -xboxController.getLeftStickOmega();
+      // SmartDashboard.putNumber("Z-Axis: ", -xboxDriveController.getLeftStickX() * 0.6);
       return -xboxDriveController.getLeftStickX() * 0.6;
     }
 
@@ -126,9 +142,9 @@ public class RobotContainer {
       // Load the path you want to follow using its name in the GUI
       PathPlannerPath path = PathPlannerPath.fromPathFile(tr);
 
-      if (flipTrajectory) {
-        path = path.flipPath();
-      }
+      // if (flipTrajectory) {
+      //   path = path.flipPath();
+      // }
 
       Pose2d startPose = path.getStartingHolonomicPose().get(); // reset odometry, as PP may not do so
 
@@ -137,8 +153,8 @@ public class RobotContainer {
       if (! shouldResetOdometryToStartingPose) {
         return AutoBuilder.followPath(path);
       } else { // reset odometry the right way
-        // return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
-        return Commands.sequence(AutoBuilder.resetOdom(startPose));
+        return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+        //return Commands.sequence(AutoBuilder.resetOdom(startPose));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
@@ -146,15 +162,16 @@ public class RobotContainer {
     }
   }
 
-  public static void setIfAllianceRed() {
-    var alliance = DriverStation.getAlliance();
-    if (! alliance.isPresent()) {
-        System.out.println("=== !!! Alliance not present !!! === Staying with the BLUE system");
-    } else {
-        isAllianceRed = alliance.get() == DriverStation.Alliance.Red;
-        System.out.println("*** RED Alliance: "+isAllianceRed);
-    }
-  }
+  // public static void setIfAllianceRed() {
+  //   var alliance = DriverStation.getAlliance();
+  //   if (! alliance.isPresent()) {
+  //       System.out.println("=== !!! Alliance not present !!! === Staying with the BLUE system");
+  //   } else {
+  //       isAllianceRed = alliance.get() == DriverStation.Alliance.Red;
+  //       System.out.println("*** RED Alliance: "+isAllianceRed);
+  //   }
+  // }
+
   public static void toggleReversingControllerAndIMUForRed() {
     isReversingControllerAndIMUForRed = !isReversingControllerAndIMUForRed;
   }

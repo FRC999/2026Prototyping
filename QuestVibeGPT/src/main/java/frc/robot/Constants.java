@@ -47,7 +47,7 @@ public final class Constants {
             5, // Port Number for Xbox controller
             ControllerDeviceType.XBOX,
             0.03, // deadband X for Xbox
-            0.03, // deadband Y for Xbox //TODO: ALL DEADBAND FOR XBOX IS PLACEHOLDER
+            0.05, // deadband Y for Xbox //TODO: ALL DEADBAND FOR XBOX IS PLACEHOLDER
             0.03, // deadband Omega for Xbox
             false, // No cube controller configuration for Xbox yet
             false);
@@ -107,7 +107,7 @@ public final class Constants {
 
       public static final double MaxSpeed = 5.21; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s
-      public static final double DeadbandRatioLinear = 0.02; //determined by calibration method 
+      public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
       public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot");

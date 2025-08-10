@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -55,6 +56,7 @@ public class RobotContainer {
     public RobotContainer() {
         configureBindings();
         testTrajectory();
+        setYaws();
 
         driveSubsystem.setDefaultCommand(
       new DriveManuallyCommand(
@@ -116,6 +118,11 @@ public class RobotContainer {
         new JoystickButton(xboxDriveController, 2)
         .onTrue(new ThreeMeterForwardPPCommand());
     }
+
+    public void setYaws() {
+    new JoystickButton(xboxDriveController, 8)
+      .onTrue(new InstantCommand(() -> driveSubsystem.zeroYaw()));
+  }
 
      // Driver preferred controls
      private double getDriverXAxis() {

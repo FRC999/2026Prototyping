@@ -121,7 +121,10 @@ public class RobotContainer {
 
     public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
-      .onTrue(new InstantCommand(() -> driveSubsystem.zeroYaw()));
+      .onTrue(new InstantCommand(() -> driveSubsystem.zeroYaw())
+        .andThen(new InstantCommand(()-> questNavSubsystem.zeroYaw())));
+    new JoystickButton(xboxDriveController, 7)
+        .onTrue(new InstantCommand(() -> questNavSubsystem.resetToZeroPose()));
   }
 
      // Driver preferred controls
@@ -169,19 +172,23 @@ public class RobotContainer {
     }
   }
 
-  // public static void setIfAllianceRed() {
-  //   var alliance = DriverStation.getAlliance();
-  //   if (! alliance.isPresent()) {
-  //       System.out.println("=== !!! Alliance not present !!! === Staying with the BLUE system");
-  //   } else {
-  //       isAllianceRed = alliance.get() == DriverStation.Alliance.Red;
-  //       System.out.println("*** RED Alliance: "+isAllianceRed);
-  //   }
-  // }
-
-  public static void toggleReversingControllerAndIMUForRed() {
-    isReversingControllerAndIMUForRed = !isReversingControllerAndIMUForRed;
-  }
+    // Alliance color determination
+    public void checkAllianceColor() {
+      SmartDashboard.putString("AllianceColor", DriverStation.getAlliance().toString());
+    }
+  
+    public static void setIfAllianceRed() {
+      var alliance = DriverStation.getAlliance();
+      if (! alliance.isPresent()) {
+          System.out.println("=== !!! Alliance not present !!! === Staying with the BLUE system");
+      } else {
+          isAllianceRed = alliance.get() == DriverStation.Alliance.Red;
+          System.out.println("*** RED Alliance: "+isAllianceRed);
+      }
+    }
+    public static void toggleReversingControllerAndIMUForRed() {
+      isReversingControllerAndIMUForRed = !isReversingControllerAndIMUForRed;
+    }
 
 
 

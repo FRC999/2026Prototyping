@@ -15,6 +15,16 @@ public class Robot extends TimedRobot {
 
   public Robot() {
     m_robotContainer = new RobotContainer();
+    RobotContainer.setIfAllianceRed();
+  }
+
+  @Override
+  public void robotInit() {
+    RobotContainer.setIfAllianceRed();
+
+    // The YAW should be set by autos and not really here
+    //RobotContainer.driveSubsystem.zeroYaw(); //Sets Yaw to 180 if on Red Alliance, or 0 on Blue (theoretically)
+    // RobotContainer.driveSubsystem.zeroYawInitial();
   }
 
   @Override
@@ -38,19 +48,23 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
+    RobotContainer.setIfAllianceRed();
   }
 
   @Override
   public void autonomousPeriodic() {}
 
   @Override
-  public void autonomousExit() {}
+  public void autonomousExit() {
+    RobotContainer.setIfAllianceRed();
+  }
 
   @Override
   public void teleopInit() {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+    RobotContainer.setIfAllianceRed();
   }
 
   @Override

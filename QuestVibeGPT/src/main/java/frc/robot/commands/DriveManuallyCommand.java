@@ -58,10 +58,10 @@ public class DriveManuallyCommand extends Command {
 
     // SmartDashboard.putString("Joystick Values: ", "X: " + xInput + " Y: " + yInput + " Z: " + omegaInput);
 
-    if(RobotContainer.isAllianceRed && RobotContainer.isReversingControllerAndIMUForRed){
-      xInput = -xInput;
-      yInput = -yInput;
-    }
+    // if(RobotContainer.isAllianceRed && RobotContainer.isReversingControllerAndIMUForRed){
+    //   xInput = -xInput;
+    //   yInput = -yInput;
+    // }
     
     if(!  RobotContainer.driveSubsystem.getRobotCentric()) {
 
@@ -71,7 +71,6 @@ public class DriveManuallyCommand extends Command {
       yInput * SwerveConstants.MaxSpeed,
       //0
       omegaInput * SwerveConstants.MaxAngularRate
-
     );
     } else {
       RobotContainer.driveSubsystem.driveRobotCentric(

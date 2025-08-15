@@ -489,10 +489,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      */
     public double zeroYaw() {
         double previousYaw = getYaw();
-        System.out.println("Old Yaw: " + previousYaw);
+        //System.out.println("Old Yaw: " + previousYaw);
         if (RobotContainer.isAllianceRed
                 && RobotContainer.isReversingControllerAndIMUForRed) {
-            System.out.println("Yaw 180 " + RobotContainer.isAllianceRed);
+            //System.out.println("Yaw 180 " + RobotContainer.isAllianceRed);
 
             StatusCode status = StatusCode.StatusCodeNotInitialized;
             for (int i = 0; i < 5; ++i) {
@@ -526,6 +526,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return previousYaw;
     }
 
+    
+
     @Override
     public void periodic() {
         /*
@@ -550,7 +552,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
 
         SmartDashboard.putNumber("IMU", this.getPigeon2().getYaw().getValueAsDouble());
-        SmartDashboard.putString("Pose: ", this.getState().Pose.toString());
+        SmartDashboard.putString("CTR Pose: ", this.getState().Pose.toString());
     }
 
     private void startSimThread() {

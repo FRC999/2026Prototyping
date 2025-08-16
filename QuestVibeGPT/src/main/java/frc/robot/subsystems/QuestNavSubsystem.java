@@ -19,8 +19,9 @@ import gg.questnav.questnav.QuestNav;
 
 public class QuestNavSubsystem extends SubsystemBase {
   QuestNav questNav;
-  Transform2d ROBOT_TO_QUEST = new Transform2d(-0.4, -0.3, Rotation2d.k180deg);
+  Transform2d ROBOT_TO_QUEST = new Transform2d(-0.32, -0.29, Rotation2d.k180deg);
   Pose2d robotPose = new Pose2d(0, 0, Rotation2d.kZero);
+  final Pose2d nullPose = new Pose2d(-1, -1, Rotation2d.kZero);
 
   PoseFrame[] poseFrames;
 
@@ -93,7 +94,7 @@ public class QuestNavSubsystem extends SubsystemBase {
     return (poseFrames != null && poseFrames.length > 0) ?
       poseFrames[poseFrames.length - 1].questPose()
         .transformBy(ROBOT_TO_QUEST.inverse()) :
-      null;
+      nullPose;
     
     // return qPose;
   }
@@ -113,7 +114,7 @@ public class QuestNavSubsystem extends SubsystemBase {
   public Pose2d getQuestPose() {
     return (poseFrames != null && poseFrames.length > 0) ?
         poseFrames[poseFrames.length - 1].questPose() :
-        null;
+        nullPose;
   }
 
   public void resetQuestOdometry(Pose2d robotPose) {

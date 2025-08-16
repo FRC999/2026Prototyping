@@ -32,6 +32,7 @@ import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.OneMeterForwardPPCommand;
 import frc.robot.commands.OneMeterForwardTurnPPCommand;
 import frc.robot.commands.QuestNavTrajectoryTest;
+import frc.robot.commands.ReturnTestPPCommand;
 import frc.robot.commands.ThreeMeterForwardPPCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
@@ -115,8 +116,11 @@ public class RobotContainer {
     private void testTrajectory() {
       new JoystickButton(xboxDriveController, 1)
         .onTrue(new OneMeterForwardTurnPPCommand());
-        new JoystickButton(xboxDriveController, 2)
-        .onTrue(new ThreeMeterForwardPPCommand());
+        // new JoystickButton(xboxDriveController, 2)
+        // .onTrue(new ThreeMeterForwardPPCommand());
+      new JoystickButton(xboxDriveController, 2)
+        .onTrue(new ReturnTestPPCommand())
+        .onFalse(stopRobotCommand());
     }
 
     public void setYaws() {
@@ -163,8 +167,8 @@ public class RobotContainer {
       if (! shouldResetOdometryToStartingPose) {
         return AutoBuilder.followPath(path);
       } else { // reset odometry the right way
-        return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
-        //return Commands.sequence(AutoBuilder.resetOdom(startPose));
+        return Commands.sequence(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(startPose)), AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+      //  return Commands.sequence(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(startPose)), AutoBuilder.resetOdom(startPose));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());

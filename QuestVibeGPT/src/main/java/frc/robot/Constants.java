@@ -102,8 +102,8 @@ public final class Constants {
     }
     /** Swerve-wide constants and module mappings */
     public static final class SwerveConstants {
-      private SwerveConstants() {
-      }
+
+      public static final boolean CTR_ODOMETRY_UPDATE_FROM_QUEST = true;
 
       public static final double MaxSpeed = 5.21; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s

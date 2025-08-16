@@ -8,12 +8,17 @@ import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.Utils;
 import java.util.Objects;
 
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
+import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import gg.questnav.questnav.PoseFrame;
 import gg.questnav.questnav.QuestNav;
 
@@ -22,6 +27,13 @@ public class QuestNavSubsystem extends SubsystemBase {
   Transform2d ROBOT_TO_QUEST = new Transform2d(-0.32, -0.29, Rotation2d.k180deg);
   Pose2d robotPose = new Pose2d(0, 0, Rotation2d.kZero);
   final Pose2d nullPose = new Pose2d(-1, -1, Rotation2d.kZero);
+
+  Matrix<N3, N1> QUESTNAV_STD_DEVS =
+    VecBuilder.fill( 
+        0.02, // Trust down to 2cm in X direction
+        0.02, // Trust down to 2cm in Y direction
+        0.035 // Trust down to 2 degrees rotational
+    );
 
   PoseFrame[] poseFrames;
 
@@ -128,17 +140,36 @@ public class QuestNavSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
-    SmartDashboard.putString("qTranformedPose: ", getQuestRobotPose().toString());
-    SmartDashboard.putString("qTruePose: ", getQuestPose().toString());
-    SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
-    SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
-    SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
+
+    if (questNav.isTracking()) {
+      // This method will be called once per scheduler run
+      SmartDashboard.putString("qTranformedPose: ", getQuestRobotPose().toString());
+      SmartDashboard.putString("qTruePose: ", getQuestPose().toString());
+      SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
+      SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
+      SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
 
 
-    //update pose Frames
-    poseFrames = questNav.getAllUnreadPoseFrames();
-    // Display number of frames provided
-    SmartDashboard.putNumber("qFrames", poseFrames.length);
+      //update pose Frames
+      poseFrames = questNav.getAllUnreadPoseFrames();
+      // Display number of frames provided
+      SmartDashboard.putNumber("qFrames", poseFrames.length);
+      if(SwerveConstants.CTR_ODOMETRY_UPDATE_FROM_QUEST) {
+        for (PoseFrame questFrame : poseFrames) {
+          // Get the pose of the Quest
+          Pose2d questPose = questFrame.questPose();
+          // Get timestamp for when the data was sent
+          double timestamp = questFrame.dataTimestamp();
+
+          // Transform by the mount pose to get your robot pose
+          Pose2d robotPose = questPose.transformBy(ROBOT_TO_QUEST.inverse());
+
+          // You can put some sort of filtering here if you would like!
+
+          // Add the measurement to our estimator
+          RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestamp, QUESTNAV_STD_DEVS);
+        }
+      }
+    }
   }
 }

@@ -129,13 +129,15 @@ public class QuestNavSubsystem extends SubsystemBase {
         nullPose;
   }
 
-  public void resetQuestOdometry(Pose2d robotPose) {
+  public void resetQuestOdometry(Pose2d rP) {
 
     // Transform by the offset to get the Quest pose
-    Pose2d questPose = robotPose.transformBy(ROBOT_TO_QUEST);
+    Pose2d questPose = rP.transformBy(ROBOT_TO_QUEST);
 
     // Send the reset operation
     questNav.setPose(questPose);
+    System.out.println("Quest Odometry Reset To: " + questPose.toString());
+    System.out.println("QRP: " + rP.toString());
   }
 
   @Override

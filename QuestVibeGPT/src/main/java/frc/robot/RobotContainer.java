@@ -121,6 +121,8 @@ public class RobotContainer {
       new JoystickButton(xboxDriveController, 2)
         .onTrue(new ReturnTestPPCommand())
         .onFalse(stopRobotCommand());
+      new JoystickButton(xboxDriveController, 3)
+        .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose2d(10, 10, Rotation2d.k180deg))));
     }
 
     public void setYaws() {

@@ -6,6 +6,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.Utils;
+import java.util.Objects;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -41,9 +42,11 @@ public class QuestNavSubsystem extends SubsystemBase {
     // questNav.setPose(new Pose2d(getQuestPose().getTranslation(),
     // ROBOT_TO_QUEST.getRotation()
     // .rotateBy(Rotation2d.fromDegrees(angle))));
-    System.out.println("Quest Robot Pose: " + getQuestRobotPose().toString());
+    System.out.println("Quest Robot Pose: " + 
+        java.util.Objects.requireNonNullElse(getQuestRobotPose(),"").toString());
     System.out.println("QAngle: " + angle);
-    System.out.println("New QAngle: " + (Rotation2d.fromDegrees(angle).minus(getQuestRobotPose().getRotation())).getDegrees());
+    System.out.println("New QAngle: " + (Rotation2d.fromDegrees(angle).
+        minus(getQuestRobotPose().getRotation())).getDegrees());
     
     Pose2d newRobotPose = new Pose2d(getQuestRobotPose().getTranslation(), Rotation2d.fromDegrees(angle));
     System.out.println(newRobotPose.toString());

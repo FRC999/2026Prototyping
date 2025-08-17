@@ -24,8 +24,8 @@ import gg.questnav.questnav.QuestNav;
 
 public class QuestNavSubsystem extends SubsystemBase {
   QuestNav questNav;
-  // Transform2d ROBOT_TO_QUEST = new Transform2d(-0.32, -0.29, Rotation2d.k180deg);
-  Transform2d ROBOT_TO_QUEST = new Transform2d(0, 0, Rotation2d.kZero);
+   Transform2d ROBOT_TO_QUEST = new Transform2d(-0.32, -0.29, Rotation2d.k180deg); //Original was -0.32, -0.29
+  // Transform2d ROBOT_TO_QUEST = new Transform2d(0, 0, Rotation2d.kZero); //Use for characterization
   Pose2d robotPose = new Pose2d(0, 0, Rotation2d.kZero);
   final Pose2d nullPose = new Pose2d(-1, -1, Rotation2d.kZero);
 

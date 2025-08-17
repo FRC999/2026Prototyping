@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants;
+import frc.robot.Constants.PathPlannerConstants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.OIContants.ControllerDevice;
 
@@ -24,6 +25,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -36,6 +38,7 @@ import frc.robot.commands.QuestOffsetCharacterization;
 import frc.robot.commands.ReturnTestPPCommand;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.ThreeMeterForwardPPCommand;
+import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
 
@@ -118,7 +121,7 @@ public class RobotContainer {
 
     private void testTrajectory() {
       new JoystickButton(xboxDriveController, 1)
-        .onTrue(new OneMeterForwardTurnPPCommand());
+        .onTrue(new OneMeterForwardPPCommand());
         // new JoystickButton(xboxDriveController, 2)
         // .onTrue(new ThreeMeterForwardPPCommand());
       new JoystickButton(xboxDriveController, 2)
@@ -165,10 +168,6 @@ public class RobotContainer {
       // Load the path you want to follow using its name in the GUI
       PathPlannerPath path = PathPlannerPath.fromPathFile(tr);
 
-      // if (flipTrajectory) {
-      //   path = path.flipPath();
-      // }
-
       Pose2d startPose = path.getStartingHolonomicPose().get(); // reset odometry, as PP may not do so
 
       // Create a path following command using AutoBuilder. This will also trigger
@@ -176,8 +175,14 @@ public class RobotContainer {
       if (! shouldResetOdometryToStartingPose) {
         return AutoBuilder.followPath(path);
       } else { // reset odometry the right way
-        return Commands.sequence(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(startPose)), AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
-      //  return Commands.sequence(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(startPose)), AutoBuilder.resetOdom(startPose));
+        return Commands.sequence(new InstantCommand(() -> 
+          questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))), 
+            AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
+        
+          //return Commands.sequence(AutoBuilder.resetOdom(startPose));
+
+        // return Commands.sequence(new InstantCommand(() -> 
+        //   questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))), AutoBuilder.resetOdom(startPose));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());

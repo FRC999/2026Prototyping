@@ -233,4 +233,8 @@ public final class Constants {
     }
 
   }
+
+  public static final class PathPlannerConstants{
+    public static final boolean shouldFlipTrajectoryOnRed = true;
+  }
 }

@@ -32,7 +32,9 @@ import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.OneMeterForwardPPCommand;
 import frc.robot.commands.OneMeterForwardTurnPPCommand;
 import frc.robot.commands.QuestNavTrajectoryTest;
+import frc.robot.commands.QuestOffsetCharacterization;
 import frc.robot.commands.ReturnTestPPCommand;
+import frc.robot.commands.StopRobot;
 import frc.robot.commands.ThreeMeterForwardPPCommand;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
@@ -110,7 +112,8 @@ public class RobotContainer {
                 driveSubsystem.getDrive().withVelocityX(0) // Drive forward with negative Y (forward)
                     .withVelocityY(0) // Drive left with negative X (left)
                     .withRotationalRate(0) // Drive counterclockwise with negative X (left)
-            );
+                    
+        );
     }
 
     private void testTrajectory() {
@@ -120,9 +123,13 @@ public class RobotContainer {
         // .onTrue(new ThreeMeterForwardPPCommand());
       new JoystickButton(xboxDriveController, 2)
         .onTrue(new ReturnTestPPCommand())
-        .onFalse(stopRobotCommand());
+        .onFalse(new StopRobot());
       new JoystickButton(xboxDriveController, 3)
         .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose2d(10, 10, Rotation2d.k180deg))));
+
+      new JoystickButton(xboxDriveController, 4)
+        .onTrue(new QuestOffsetCharacterization())
+        .onFalse(new StopRobot());
     }
 
     public void setYaws() {

@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
@@ -164,6 +165,10 @@ public class RobotContainer {
 
     public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
       boolean shouldResetOdometryToStartingPose, boolean flipTrajectory) {
+
+                // alex test
+                System.out.println("Start drive routine");
+
     try {
       // Load the path you want to follow using its name in the GUI
       PathPlannerPath path = PathPlannerPath.fromPathFile(tr);
@@ -173,8 +178,16 @@ public class RobotContainer {
       // Create a path following command using AutoBuilder. This will also trigger
       // event markers.
       if (! shouldResetOdometryToStartingPose) {
+
+        // alex test
+        //System.out.println("Rigth before driving without reset");
         return AutoBuilder.followPath(path);
+
       } else { // reset odometry the right way
+
+        // alex test
+        //System.out.println("Rigth before driving with reset");
+
         return Commands.sequence(new InstantCommand(() -> 
           questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))), 
             AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
@@ -189,6 +202,11 @@ public class RobotContainer {
       return Commands.none();
     }
   }
+
+  // alex test
+  // public static Command testCommand2() {
+  //   return new PrintCommand("Test 2 Command");
+  // }
 
     // Alliance color determination
     public void checkAllianceColor() {

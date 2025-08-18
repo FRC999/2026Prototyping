@@ -19,7 +19,9 @@ public class OneMeterForwardPPCommand extends SequentialCommandGroup {
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
       new PrintCommand("Running OneMeterForward"),
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("OneMeterForward", true, false)
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("OneMeterForward", true, false),
+      // RobotContainer.testCommand2(),
+      new PrintCommand("End Trajectory")
     );
   }
 }

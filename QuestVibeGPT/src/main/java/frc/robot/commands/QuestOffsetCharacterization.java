@@ -29,6 +29,8 @@ public class QuestOffsetCharacterization extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
+    robotPoses.clear();
+    counter = 0;
     RobotContainer.driveSubsystem.drive(0, 0, rotationalSpeed);
   }
 

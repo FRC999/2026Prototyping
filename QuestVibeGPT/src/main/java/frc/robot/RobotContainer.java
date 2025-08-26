@@ -132,7 +132,11 @@ public class RobotContainer {
         .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose2d(10, 10, Rotation2d.k180deg))));
 
       new JoystickButton(xboxDriveController, 4)
-        .onTrue(new QuestOffsetCharacterization())
+        .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
+        .onFalse(new StopRobot());
+
+      new JoystickButton(xboxDriveController, 5)
+        .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
         .onFalse(new StopRobot());
     }
 

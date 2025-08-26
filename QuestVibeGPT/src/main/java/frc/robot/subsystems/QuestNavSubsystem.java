@@ -6,6 +6,8 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.Utils;
+
+import java.util.ArrayList;
 import java.util.Objects;
 
 import edu.wpi.first.math.Matrix;
@@ -16,8 +18,11 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
+import frc.robot.lib.QuestCharacterizationHelper;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import gg.questnav.questnav.PoseFrame;
 import gg.questnav.questnav.QuestNav;
@@ -25,9 +30,19 @@ import gg.questnav.questnav.QuestNav;
 public class QuestNavSubsystem extends SubsystemBase {
   QuestNav questNav;
    Transform2d ROBOT_TO_QUEST = new Transform2d(-0.32, -0.29, Rotation2d.k180deg); //Original was -0.32, -0.29
-  // Transform2d ROBOT_TO_QUEST = new Transform2d(0, 0, Rotation2d.kZero); //Use for characterization
+  // Transform2d ROBOT_TO_QUEST = new Transform2d(0, 0, Rotation2d.kZero); //Original was -0.32, -0.29
+  //  final Transform2d ROBOT_TO_QUEST_CHARACTERIZATION = new Transform2d(0, 0, Rotation2d.kZero); //Use for characterization
+  //  final Transform2d ROBOT_TO_QUEST_NORMAL = new Transform2d(-0.32, -0.29, Rotation2d.k180deg); //Original was -0.32, -0.29
+
+  public static final Pose2d characterizationQuestPose = new Pose2d();
+  public static int characterizationCounter = 0;
+  public static boolean isCharacterizationRunning = false;
+  public static Pose2d startCharacterizationPose;
+  public static Pose2d endCharacterizationPose;
+  public static double savedQuestAngle;
+
   Pose2d robotPose = new Pose2d(0, 0, Rotation2d.kZero);
-  final Pose2d nullPose = new Pose2d(-1, -1, Rotation2d.kZero);
+  final Pose2d nullPose = new Pose2d(-1000, -1000, Rotation2d.kZero);
 
   Matrix<N3, N1> QUESTNAV_STD_DEVS =
     VecBuilder.fill( 
@@ -141,6 +156,109 @@ public class QuestNavSubsystem extends SubsystemBase {
     System.out.println("QRP: " + rP.toString());
   }
 
+  /**
+   * Creates a command that rotates the robot and characterizes the Quest translation offset.
+   * 
+   * @return Command that runs indefinitely until canceled.
+   */
+  public Command offsetTranslationCharacterizationCommand() {
+    double rotationalSpeed = SwerveConstants.MaxAngularRate / 6.0;
+    ArrayList<Double[]> robotPoses = new ArrayList<>();
+    int everyN = 10;
+
+    return Commands.sequence(
+        // Initialize: start rotating
+        Commands.runOnce(
+            () -> {
+              robotPoses.clear();
+              characterizationCounter = 0;
+              RobotContainer.driveSubsystem.drive(0, 0, rotationalSpeed);},
+            RobotContainer.driveSubsystem
+        ),
+
+        // Main loop: collect samples
+        Commands.run(
+            () -> {
+              if (characterizationCounter++ % everyN == 0) {
+                Pose2d pose = this.getQuestPose();
+                // System.out.println("Get X: " + pose.getX() + " Get Y: " + pose.getY());
+                if(!pose.equals(nullPose)) {
+                  robotPoses.add(new Double[]{pose.getX(), pose.getY()});
+                //  System.out.println("Valid");
+                }
+              }
+            },
+            this // this subsystem (QuestNavSubsystem)
+        )
+        // Cleanup: estimate circle center
+        .finallyDo(interrupted -> {
+          try {
+            var c = QuestCharacterizationHelper.estimateCircleCenter(robotPoses);
+            System.out.println("X: " + (c.getX() - ROBOT_TO_QUEST.getX()) +
+                               " Y: " + (c.getY() - ROBOT_TO_QUEST.getY()) +
+                               " Num: " + robotPoses.size());
+          } catch (Exception e) {
+            System.out.println(e);
+          }
+          // optional: stop drivetrain
+          RobotContainer.driveSubsystem.drive(0, 0, 0);
+        })
+    )
+    // Never ends on its own
+    .until(() -> false);
+  }
+
+  /**
+   * Creates a command that drives the robot straight and characterizes the Quest angle offset.
+   * 
+   * @return Command that runs indefinitely until canceled.
+   */
+  public Command offsetAngleCharacterizationCommand() {
+    double driveSpeed = SwerveConstants.MaxSpeed / 6.0;
+
+    return Commands.sequence(
+        // Initialize: start rotating
+        Commands.runOnce(
+            () -> {
+              isCharacterizationRunning = true;
+              characterizationCounter = 0;
+              savedQuestAngle = this.getQuestPose().getRotation().getDegrees();
+              questNav.setPose(characterizationQuestPose);
+              },
+            RobotContainer.driveSubsystem
+        ),
+
+        // Main loop: collect samples
+        Commands.run(
+            () -> {
+             if (characterizationCounter++ == 10) {
+              startCharacterizationPose = this.getQuestPose();
+              RobotContainer.driveSubsystem.drive(driveSpeed, 0, 0);
+             }
+            },
+            this // this subsystem (QuestNavSubsystem)
+        )
+        // Cleanup: estimate circle center
+        .finallyDo(interrupted -> {
+          try {
+            endCharacterizationPose = this.getQuestPose();
+            System.out.println("S: " + startCharacterizationPose.toString() +
+                               " E: " + endCharacterizationPose.toString() +
+                               " Angle: " + Math.atan((endCharacterizationPose.getY()-startCharacterizationPose.getY()) /
+                                                    (endCharacterizationPose.getX()-startCharacterizationPose.getX())));
+          } catch (Exception e) {
+            System.out.println(e);
+          }
+          // optional: stop drivetrain
+          RobotContainer.driveSubsystem.drive(0, 0, 0);
+          questNav.setPose(new Pose2d(0,0,Rotation2d.fromDegrees(savedQuestAngle)));
+          isCharacterizationRunning = false;
+        })
+    )
+    // Never ends on its own
+    .until(() -> false);
+  }
+
   @Override
   public void periodic() {
 
@@ -157,7 +275,7 @@ public class QuestNavSubsystem extends SubsystemBase {
       poseFrames = questNav.getAllUnreadPoseFrames();
       // Display number of frames provided
       SmartDashboard.putNumber("qFrames", poseFrames.length);
-      if(SwerveConstants.CTR_ODOMETRY_UPDATE_FROM_QUEST) {
+      if(SwerveConstants.CTR_ODOMETRY_UPDATE_FROM_QUEST && !isCharacterizationRunning) {
         for (PoseFrame questFrame : poseFrames) {
           // Get the pose of the Quest
           Pose2d questPose = questFrame.questPose();

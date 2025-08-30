@@ -10,12 +10,19 @@ import com.ctre.phoenix6.hardware.*;
 import com.ctre.phoenix6.signals.*;
 import com.ctre.phoenix6.swerve.*;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.*;
+
+import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.*;
 import frc.robot.subsystems.DriveSubsystem;
 import static edu.wpi.first.units.Units.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -30,6 +37,21 @@ import static edu.wpi.first.units.Units.*;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+
+  public static final class EnabledSubsystems {
+
+		public static final boolean chasis = true;
+		public static final boolean ll = true;
+		public static final boolean questnav = true;
+	}
+
+	public static final class DebugTelemetrySubsystems {
+		public static final boolean odometry = false;
+		public static final boolean imu = true;
+		public static final boolean chasis = true;
+		public static final boolean ll = true;
+		public static final boolean questnav = true;
+	}
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
 
@@ -237,4 +259,46 @@ public final class Constants {
   public static final class PathPlannerConstants{
     public static final boolean shouldFlipTrajectoryOnRed = true;
   }
+
+  public static final class LLVisionConstants {
+
+    public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout - changes year-to-year
+
+		public static enum LLCamera {
+
+			LLLEFT(
+				"limelight-fl"
+			),
+
+			LLRIGHT(
+				"limelight-fr"
+			)
+			// ,
+			// LLBACK(
+			// 	"limelight-back"
+			// )
+			;
+			private String cameraname;
+			LLCamera(String cn) {
+				this.cameraname = cn;
+			}
+			public String getCameraName() {
+				return cameraname;
+			}
+		}
+
+	}
+
+  	public static final class VisionHelperConstants {
+		public static final double distanceBetweenReefPoles = Units.inchesToMeters(12.5); // page 162 https://firstfrc.blob.core.windows.net/frc2025/FieldAssets/2025FieldDrawings.pdf
+		public static final double bumperWidth = Units.inchesToMeters(2.5);
+		public static class RobotPoseConstants {
+			public static Map<String, Pose2d> visionRobotPoses = new HashMap<String, Pose2d>();
+			public static Map<Integer, String> tagNumberToKey = new HashMap<Integer, String>();
+			public static Map<Pose2d, Integer> reefTagPoses = new HashMap<Pose2d, Integer>();
+			public static Map<Pose2d, Integer> redReefTagPoses = new HashMap<Pose2d, Integer>();
+			public static Map<Pose2d, Integer> blueReefTagPoses = new HashMap<Pose2d, Integer>();
+		}
+	}
+
 }

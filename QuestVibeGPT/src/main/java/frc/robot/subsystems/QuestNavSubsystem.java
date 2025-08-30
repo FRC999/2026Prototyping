@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
 import frc.robot.lib.QuestCharacterizationHelper;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import gg.questnav.questnav.PoseFrame;
 import gg.questnav.questnav.QuestNav;
@@ -259,16 +260,42 @@ public class QuestNavSubsystem extends SubsystemBase {
     .until(() -> false);
   }
 
+  /**
+   * get all Quest pose frames, clear unread queue
+   * @return PoseFrame[]
+   */
+  public PoseFrame[] getAllUnreadPoseFrames() {
+    // Delegate straight to the SDK. This call should return and CLEAR the unread queue.
+    return questNav.getAllUnreadPoseFrames();
+  }
+
+  /**
+   * Check if Quest track poses
+   * @return boolean
+   */
+  public boolean isTracking() {
+    // Optional: surface vendor health so you can light up a dashboard indicator.
+    try {
+      return questNav.isTracking();
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
   @Override
   public void periodic() {
 
     if (questNav.isTracking()) {
       // This method will be called once per scheduler run
-      SmartDashboard.putString("qTranformedPose: ", getQuestRobotPose().toString());
-      SmartDashboard.putString("qTruePose: ", getQuestPose().toString());
-      SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
-      SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
-      SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
+
+      // QuestNav telemetry
+      if (DebugTelemetrySubsystems.questnav) {
+        SmartDashboard.putString("qTranformedPose: ", getQuestRobotPose().toString());
+        SmartDashboard.putString("qTruePose: ", getQuestPose().toString());
+        SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
+        SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
+        SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
+      }
 
 
       //update pose Frames

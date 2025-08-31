@@ -125,6 +125,8 @@ public final class Constants {
     /** Swerve-wide constants and module mappings */
     public static final class SwerveConstants {
 
+      public static final double CHASSIS_POSE_HISTORY_TIME = 0.6; //seconds
+
       public static final boolean CTR_ODOMETRY_UPDATE_FROM_QUEST = true;
 
       public static final double MaxSpeed = 5.21; // m/s
@@ -260,45 +262,6 @@ public final class Constants {
     public static final boolean shouldFlipTrajectoryOnRed = true;
   }
 
-  public static final class LLVisionConstants {
-
-    public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout - changes year-to-year
-
-		public static enum LLCamera {
-
-			LLLEFT(
-				"limelight-fl"
-			),
-
-			LLRIGHT(
-				"limelight-fr"
-			)
-			// ,
-			// LLBACK(
-			// 	"limelight-back"
-			// )
-			;
-			private String cameraname;
-			LLCamera(String cn) {
-				this.cameraname = cn;
-			}
-			public String getCameraName() {
-				return cameraname;
-			}
-		}
-
-	}
-
-  	public static final class VisionHelperConstants {
-		public static final double distanceBetweenReefPoles = Units.inchesToMeters(12.5); // page 162 https://firstfrc.blob.core.windows.net/frc2025/FieldAssets/2025FieldDrawings.pdf
-		public static final double bumperWidth = Units.inchesToMeters(2.5);
-		public static class RobotPoseConstants {
-			public static Map<String, Pose2d> visionRobotPoses = new HashMap<String, Pose2d>();
-			public static Map<Integer, String> tagNumberToKey = new HashMap<Integer, String>();
-			public static Map<Pose2d, Integer> reefTagPoses = new HashMap<Pose2d, Integer>();
-			public static Map<Pose2d, Integer> redReefTagPoses = new HashMap<Pose2d, Integer>();
-			public static Map<Pose2d, Integer> blueReefTagPoses = new HashMap<Pose2d, Integer>();
-		}
-	}
+  
 
 }

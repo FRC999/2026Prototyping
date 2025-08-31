@@ -8,17 +8,37 @@ import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.Objects;
 
-/** 
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.util.Units;
+
+/**
  * This code is vibed via ChatGPT5
  * It helps determining Quest offset from the center of the robot's rotation
-*/
-public final class QuestCharacterizationHelper {
+ */
+public final class QuestHelpers {
+
+    private static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }
+    private static double clampRad(double v, double lo, double hi) { return clamp(v, lo, hi); }
+
+    public static Matrix<N3, N1> questStdDev(double chassisSpeedMps) {
+        double s = clamp(0.05 + 0.02 * chassisSpeedMps, 0.05, 0.15); // meters
+        double yaw = clampRad(Units.degreesToRadians(1.0 + 0.5 * chassisSpeedMps),
+                Units.degreesToRadians(0.7), Units.degreesToRadians(2.5));
+        return VecBuilder.fill(s, s, yaw);
+    }
+
+    // ======================= CHARACTERIZATION ==========================
 
     /**
-     * Estimate the center of the best-fit circle for points given as Double[2] = {x, y}.
-     * Requires at least 3 points. Robust to small noise; throws on degenerate/collinear sets.
+     * Estimate the center of the best-fit circle for points given as Double[2] =
+     * {x, y}.
+     * Requires at least 3 points. Robust to small noise; throws on
+     * degenerate/collinear sets.
      *
-     * Model: x^2 + y^2 + a x + b y + c = 0  ->  center = (-a/2, -b/2)
+     * Model: x^2 + y^2 + a x + b y + c = 0 -> center = (-a/2, -b/2)
      */
     public static Point2D.Double estimateCircleCenter(List<Double[]> points) {
         if (points == null || points.size() < 3) {
@@ -39,25 +59,25 @@ public final class QuestCharacterizationHelper {
             sxx += x * x;
             sxy += x * y;
             syy += y * y;
-            sx  += x;
-            sy  += y;
-            n   += 1.0;
+            sx += x;
+            sy += y;
+            n += 1.0;
 
             // RHS sums for A^T b with b = -(x^2 + y^2)
-            sx2y2   += -r2;
+            sx2y2 += -r2;
             sx_x2y2 += -r2 * x;
             sy_x2y2 += -r2 * y;
         }
 
         // Normal matrix M = A^T A, RHS v = A^T b, unknowns theta = [a, b, c]
         double[][] M = {
-            { sxx, sxy, sx },
-            { sxy, syy, sy },
-            {  sx,  sy,  n }
+                { sxx, sxy, sx },
+                { sxy, syy, sy },
+                { sx, sy, n }
         };
         double[] v = { sx_x2y2, sy_x2y2, sx2y2 };
 
-        double[] theta = solve3x3(M, v);   // [a, b, c]
+        double[] theta = solve3x3(M, v); // [a, b, c]
         return new Point2D.Double(-0.5 * theta[0], -0.5 * theta[1]);
     }
 
@@ -73,26 +93,40 @@ public final class QuestCharacterizationHelper {
     private static double[] solve3x3(double[][] M, double[] v) {
         double[][] A = new double[3][4];
         for (int i = 0; i < 3; i++) {
-            A[i][0] = M[i][0]; A[i][1] = M[i][1]; A[i][2] = M[i][2]; A[i][3] = v[i];
+            A[i][0] = M[i][0];
+            A[i][1] = M[i][1];
+            A[i][2] = M[i][2];
+            A[i][3] = v[i];
         }
         for (int col = 0; col < 3; col++) {
             int pivot = col;
             double maxAbs = Math.abs(A[col][col]);
             for (int r = col + 1; r < 3; r++) {
                 double val = Math.abs(A[r][col]);
-                if (val > maxAbs) { maxAbs = val; pivot = r; }
+                if (val > maxAbs) {
+                    maxAbs = val;
+                    pivot = r;
+                }
             }
             if (maxAbs < 1e-12) {
                 throw new IllegalArgumentException("Degenerate/collinear points: cannot fit a unique circle.");
             }
-            if (pivot != col) { double[] tmp = A[col]; A[col] = A[pivot]; A[pivot] = tmp; }
-            double diag = A[col][col];
-            for (int c = col; c < 4; c++) A[col][c] /= diag;
-            for (int r = 0; r < 3; r++) if (r != col) {
-                double f = A[r][col];
-                if (f != 0) for (int c = col; c < 4; c++) A[r][c] -= f * A[col][c];
+            if (pivot != col) {
+                double[] tmp = A[col];
+                A[col] = A[pivot];
+                A[pivot] = tmp;
             }
+            double diag = A[col][col];
+            for (int c = col; c < 4; c++)
+                A[col][c] /= diag;
+            for (int r = 0; r < 3; r++)
+                if (r != col) {
+                    double f = A[r][col];
+                    if (f != 0)
+                        for (int c = col; c < 4; c++)
+                            A[r][c] -= f * A[col][c];
+                }
         }
-        return new double[]{A[0][3], A[1][3], A[2][3]};
+        return new double[] { A[0][3], A[1][3], A[2][3] };
     }
 }

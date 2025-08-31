@@ -10,7 +10,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
-import frc.robot.lib.QuestCharacterizationHelper;
+import frc.robot.lib.QuestHelpers;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
 public class QuestOffsetCharacterization extends Command {
@@ -47,7 +47,7 @@ public class QuestOffsetCharacterization extends Command {
   @Override
   public void end(boolean interrupted) {
     try {
-      var c = QuestCharacterizationHelper.estimateCircleCenter(robotPoses);
+      var c = QuestHelpers.estimateCircleCenter(robotPoses);
       System.out.println("X: " + c.getX() + " Y: " + c.getY() + " Num: " + robotPoses.size());
     }
     catch (Exception e) {

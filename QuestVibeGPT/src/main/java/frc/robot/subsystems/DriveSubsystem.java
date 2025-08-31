@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.*;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
@@ -25,6 +26,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -32,6 +34,7 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -45,6 +48,10 @@ import frc.robot.RobotContainer;
  */
 public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements Subsystem {
     // Requests moved from RobotContainer:
+
+    // Chassis Pose for the last 0.6 seconds
+    private final TimeInterpolatableBuffer<Pose2d> poseBuffer =
+      TimeInterpolatableBuffer.createBuffer(SwerveConstants.CHASSIS_POSE_HISTORY_TIME); // ~0.6 s history for backdating
 
     private final com.ctre.phoenix6.swerve.SwerveRequest.SwerveDriveBrake brake = new com.ctre.phoenix6.swerve.SwerveRequest.SwerveDriveBrake();
     private final com.ctre.phoenix6.swerve.SwerveRequest.PointWheelsAt point = new com.ctre.phoenix6.swerve.SwerveRequest.PointWheelsAt();
@@ -526,6 +533,15 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return previousYaw;
     }
 
+    /**
+     * Check if pose with given timestamp is present in buffer
+     * @param t
+     * @return Pose2d at given timestamp
+     */
+    public Optional<Pose2d> getSample(double t) {
+        return poseBuffer.getSample(t);
+    }
+
     
 
     @Override
@@ -553,6 +569,9 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         SmartDashboard.putNumber("IMU", this.getPigeon2().getYaw().getValueAsDouble());
         SmartDashboard.putString("CTR Pose: ", this.getState().Pose.toString());
+
+        // update history of the chassis poses, needed for odometry updates using Quest or LL
+        poseBuffer.addSample(Timer.getFPGATimestamp(), this.getPose());
     }
 
     private void startSimThread() {

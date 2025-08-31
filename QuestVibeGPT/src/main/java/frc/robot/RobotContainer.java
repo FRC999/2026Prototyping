@@ -8,6 +8,9 @@ import frc.robot.Constants;
 import frc.robot.Constants.PathPlannerConstants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.OIContants.ControllerDevice;
+import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
+import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
+import frc.robot.OdometryUpdates.QuestNavSubsystem;
 
 import static edu.wpi.first.units.Units.*;
 
@@ -41,11 +44,9 @@ import frc.robot.commands.StopRobot;
 import frc.robot.commands.ThreeMeterForwardPPCommand;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
-import frc.robot.subsystems.QuestNavSubsystem;
 
 
 public class RobotContainer {
-    public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
 
      // kSpeedAt12Volts desired top speed
      // 3/4 of a rotation per second max angular velocity
@@ -59,6 +60,10 @@ public class RobotContainer {
     public static boolean isReversingControllerAndIMUForRed = true;
 
     public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
+    public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
+    public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
+    public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
+
 
     public RobotContainer() {
         configureBindings();

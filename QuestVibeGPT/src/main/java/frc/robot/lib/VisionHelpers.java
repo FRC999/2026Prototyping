@@ -13,9 +13,9 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import frc.robot.Constants.VisionHelperConstants;
-import frc.robot.Constants.VisionHelperConstants.RobotPoseConstants;
-import frc.robot.subsystems.LLVisionSubsystem;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.RobotPoseConstants;
+import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import edu.wpi.first.math.geometry.Pose3d;
 
 
@@ -71,8 +71,8 @@ public class VisionHelpers {
     
 
     public static Pose3d getTagPose(int tagId) {
-        if (LLVisionSubsystem.fieldLayout != null) {
-            Optional<Pose3d> tagPose = LLVisionSubsystem.fieldLayout.getTagPose(tagId);
+        if (LLAprilTagSubsystem.fieldLayout != null) {
+            Optional<Pose3d> tagPose = LLAprilTagSubsystem.fieldLayout.getTagPose(tagId);
             if (tagPose.isPresent()) {
                 return tagPose.get();
             } else {
@@ -296,7 +296,7 @@ public class VisionHelpers {
      * @return True if the field layout is valid, false otherwise.
      */
     public static boolean isFieldLayoutValid() {
-        return LLVisionSubsystem.fieldLayout != null;
+        return LLAprilTagSubsystem.fieldLayout != null;
     }
 
     public static Pose2d getKeyByValue(HashMap<Pose2d, Integer> map, int value) {

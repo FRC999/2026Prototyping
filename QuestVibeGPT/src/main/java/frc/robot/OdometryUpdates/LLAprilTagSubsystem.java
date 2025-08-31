@@ -2,17 +2,16 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.subsystems;
+package frc.robot.OdometryUpdates;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.lib.LimelightHelpers;
 import frc.robot.lib.LimelightHelpers.PoseEstimate;
 import frc.robot.lib.LimelightHelpers.RawFiducial;
 import frc.robot.RobotContainer;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.RobotPoseConstants;
 import frc.robot.Constants.EnabledSubsystems;
-import frc.robot.Constants.LLVisionConstants;
-import frc.robot.Constants.LLVisionConstants.LLCamera;
-import frc.robot.Constants.VisionHelperConstants.RobotPoseConstants;
 import frc.robot.lib.VisionHelpers;
 
 import java.util.Map;
@@ -21,7 +20,7 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-public class LLVisionSubsystem extends SubsystemBase {
+public class LLAprilTagSubsystem extends SubsystemBase {
   public static AprilTagFieldLayout fieldLayout;
 
   private Pose2d bestPose;
@@ -36,7 +35,7 @@ public class LLVisionSubsystem extends SubsystemBase {
   Map<Pose2d, Integer> allianceTagPoses;
 
   /** Creates a new LLVisionSubsystem. */
-  public LLVisionSubsystem() {
+  public LLAprilTagSubsystem() {
 
     if(!EnabledSubsystems.ll){
       return;

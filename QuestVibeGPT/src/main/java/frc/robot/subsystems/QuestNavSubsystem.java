@@ -68,10 +68,11 @@ public class QuestNavSubsystem extends SubsystemBase {
     System.out.println("****QRobot reset to zero pose: " + questPose.toString());
   }
 
+  /**
+   * reset Quest YAW based on the specified Robot YAW
+   * @param angle (degrees)
+   */
   public void resetQuestIMUToAngle(double angle) {
-    // questNav.setPose(new Pose2d(getQuestPose().getTranslation(),
-    // ROBOT_TO_QUEST.getRotation()
-    // .rotateBy(Rotation2d.fromDegrees(angle))));
     System.out.println("Quest Robot Pose: " + 
         java.util.Objects.requireNonNullElse(getQuestRobotPose(),"").toString());
     System.out.println("QAngle: " + angle);
@@ -93,59 +94,79 @@ public class QuestNavSubsystem extends SubsystemBase {
     return getQuestPose().getRotation().getDegrees(); // With True QuestNav Pose this method returns values in degrees
   }
 
+  /**
+   * Get robot chassis YAW based on the latest Quest-transformed robot pose
+   * @return YAW (degrees)
+   */
   public double getQuestRobotYaw() {
     return getQuestRobotPose().getRotation().getDegrees();
   }
 
   /**
    * Zeroes the yaw of the robot
+   * assuming the robot is pointing AWAY from the drivers
+   * (meaning - angke is set 180 for RED)
    * 
    * @return The previous yaw
    */
   public double zeroYaw() {
     double previousYaw = getQuestRobotYaw();
-    // System.out.println("Old Yaw: " + previousYaw);
     if (RobotContainer.isAllianceRed
         && RobotContainer.isReversingControllerAndIMUForRed) {
-      // System.out.println("Yaw 180 " + RobotContainer.isAllianceRed);
       resetQuestIMUToAngle(180);
-
     } else {
-      //System.out.println("Yaw NOT 180 " + RobotContainer.isAllianceRed);
       resetQuestIMUToAngle(0);
     }
     System.out.println("New Yaw: " + getQuestRobotYaw());
     return previousYaw;
   }
 
+  /**
+   * get the latest Robot pose transforned from Quest pose
+   * from the uncreared frames in Quest buffer
+   * @return - Quest Pose2D
+   */
   public Pose2d getQuestRobotPose() {
-
     return (poseFrames != null && poseFrames.length > 0) ?
       poseFrames[poseFrames.length - 1].questPose()
         .transformBy(ROBOT_TO_QUEST.inverse()) :
       nullPose;
-    
-    // return qPose;
   }
 
+  /**
+   * get the data timestamp of the latest Quest pose from the uncleared frames in Quest buffer
+   * @return - raw timestamp
+   */
   public double getQTimeStamp() {
     return (poseFrames != null && poseFrames.length > 0) ?
       poseFrames[poseFrames.length - 1].dataTimestamp() :
       0;
   }
 
+  /**
+   * get the app timestamp of the latest Quest pose from the uncleared frames in Quest buffer
+   * @return - raw timestamp
+   */
   public double getQAppTimeStamp() {
     return (poseFrames != null && poseFrames.length > 0) ?
         poseFrames[poseFrames.length - 1].appTimestamp() :
         0;
   }
 
+  /**
+   * get the latest Quest pose from the uncreared frames in Quest buffer
+   * @return - Quest Pose2D
+   */
   public Pose2d getQuestPose() {
     return (poseFrames != null && poseFrames.length > 0) ?
         poseFrames[poseFrames.length - 1].questPose() :
         nullPose;
   }
 
+  /**
+   * Reset Quest pose based on specified Robot pose
+   * @param rP - robot pose
+   */
   public void resetQuestOdometry(Pose2d rP) {
 
     // Transform by the offset to get the Quest pose

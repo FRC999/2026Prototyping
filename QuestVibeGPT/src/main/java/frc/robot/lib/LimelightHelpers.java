@@ -9,10 +9,14 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.TimestampedDoubleArray;
 import frc.robot.lib.LimelightHelpers.LimelightResults;
 import frc.robot.lib.LimelightHelpers.PoseEstimate;
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -37,6 +41,23 @@ import java.util.concurrent.ConcurrentHashMap;
  * This library supports all Limelight features including AprilTag tracking, Neural Networks, and standard color/retroreflective tracking.
  */
 public class LimelightHelpers {
+
+    public static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }
+    public static double clampRad(double v, double lo, double hi) { return clamp(v, lo, hi); }
+
+    public static Matrix<N3, N1> llStdDev(double distMeters, int tagCount, double ambiguity) {
+    double s = 0.08 + 0.03 * distMeters
+             - 0.02 * Math.min(Math.max(tagCount - 1, 0), 3)
+             + 0.25 * clamp(ambiguity, 0.0, 1.0);
+    s = clamp(s, 0.05, 0.60);
+
+    double yaw = clampRad(
+        Units.degreesToRadians(1.0 + 0.5 * distMeters + 10.0 * clamp(ambiguity, 0.0, 1.0)),
+        Units.degreesToRadians(1.0),
+        Units.degreesToRadians(10.0));
+
+    return VecBuilder.fill(s, s, yaw);
+  }
 
     private static final Map<String, DoubleArrayEntry> doubleArrayEntries = new ConcurrentHashMap<>();
 

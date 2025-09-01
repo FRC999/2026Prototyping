@@ -16,8 +16,12 @@ import frc.robot.lib.VisionHelpers;
 
 import java.util.Map;
 
+import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
+
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class LLAprilTagSubsystem extends SubsystemBase {
@@ -126,6 +130,10 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return nearest;
   }
 
+  public LLCamera[] getListOfApriltagLLCameras() {
+    return LLCamera.values();
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
@@ -151,11 +159,14 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       
       boolean ll4 = (cn.length() < 14); // check is this LL4?
 
-      double yaw = RobotContainer.driveSubsystem.getYaw();
-      //double yawrate = RobotContainer.driveSubsystem.getTurnRate();
+      SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
+      ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
 
       // Update LLs with current YAW, so they can return correct position for Megatag2
-      //LimelightHelpers.SetRobotOrientation(cn, yaw, yawrate, 0, 0, 0, 0);
+      LimelightHelpers.SetRobotOrientation(cn, 
+        swerveDriveState.Pose.getRotation().getDegrees(), 
+        Math.toDegrees(chassisSpeeds.omegaRadiansPerSecond), 
+        0, 0, 0, 0);
 
       // Select the best coordinates
       if (LimelightHelpers.getTV(cn)) {

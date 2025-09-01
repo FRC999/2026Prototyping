@@ -12,6 +12,8 @@ public class LLAprilTagConstants {
 
     public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout - changes year-to-year
 
+    
+
 		public static enum LLCamera {
 
 			LLLEFT(
@@ -35,7 +37,8 @@ public class LLAprilTagConstants {
 			}
 		}
 
-        public static final double kMaxSingleTagAmbiguity = 0.20; // Maximum ambiguity when seeing a single april tag
+        public static final double kMaxSingleTagAmbiguity = 0.20; // Maximum ambiguity when seeing a single AprilTag
+        public static final double kMaxCameraToTargetDistance = 3.0; //Maximum distance from camera to AprilTag
 	}
 
     public static final class VisionHelperConstants {

@@ -18,11 +18,13 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
+import frc.robot.lib.LimelightHelpers;
 import frc.robot.lib.QuestHelpers;
 import gg.questnav.questnav.PoseFrame;
 
 public class OdometryUpdatesSubsystem extends SubsystemBase {
-
 
   /** Creates a new OdometryUpdatesSubsystem. */
   public OdometryUpdatesSubsystem() {
@@ -75,6 +77,40 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
     return transErr <= transGate && rotErr <= rotGate;
   }
+
+  private void fuseLLCamera(LLCamera llcamera) {
+    String cn = llcamera.getCameraName();
+    if (cn == null || cn.isBlank()) return;
+
+    LimelightHelpers.PoseEstimate pe = RobotContainer.isAllianceRed
+        ? LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2(cn)
+        : LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cn);
+    if (pe == null) return;
+
+    int tagCount = pe.tagCount;
+    if (tagCount <= 0) return;
+
+    double ambiguity = LimelightHelpers.clamp(pe.rawFiducials[0].ambiguity, 0.0, 1.0); // if your Helpers expose it; else set from MT2 metrics
+    
+    if ((tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity) 
+        || (pe.rawFiducials[0].distToCamera > LLVisionConstants.kMaxCameraToTargetDistance)) 
+      return;
+
+    SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
+    ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
+
+    double speedNow = Math.hypot(chassisSpeeds.vxMetersPerSecond, chassisSpeeds.vyMetersPerSecond);
+    Pose2d poseNow = swerveDriveState.Pose;
+
+    Pose2d robotPose = pe.pose; // robot-in-field (requires correct cam extrinsics in LL UI)
+    double timestampLL = (pe.timestampSeconds > 1.0) ? pe.timestampSeconds
+      : Timer.getFPGATimestamp() - pe.latency;
+
+    if (!gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) return;
+
+    Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, tagCount, ambiguity);
+    RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+  }
   
 
   @Override
@@ -84,6 +120,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if(RobotContainer.questNavSubsystem.isInitialPoseSet()){ //Only use quest if initial quest pose is set
       //QuestNav: process ALL unread PoseFrames (high trust)
       fuseQuestNavAllUnread();
+    }
+
+    for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+      fuseLLCamera(llcamera);
     }
   }
 }

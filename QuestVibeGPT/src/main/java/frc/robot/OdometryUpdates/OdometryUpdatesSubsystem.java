@@ -106,10 +106,19 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     double timestampLL = (pe.timestampSeconds > 1.0) ? pe.timestampSeconds
       : Timer.getFPGATimestamp() - pe.latency;
 
+    if(!RobotContainer.questNavSubsystem.isInitialPoseSet() && tagCount > 1 && ambiguity < LLVisionConstants.kMaxQuestCalibrationAmbiguity ) {
+      calibrateQuestFromLL(robotPose);
+      RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+    }
+
     if (!gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) return;
 
     Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, tagCount, ambiguity);
     RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+  }
+
+  private void calibrateQuestFromLL(Pose2d robotPose) {
+    RobotContainer.questNavSubsystem.resetQuestOdometry(robotPose);
   }
   
 

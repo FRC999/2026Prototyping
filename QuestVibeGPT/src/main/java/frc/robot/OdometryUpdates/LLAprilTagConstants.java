@@ -37,6 +37,7 @@ public class LLAprilTagConstants {
 			}
 		}
 
+        public static final double kMaxQuestCalibrationAmbiguity = 0.30;
         public static final double kMaxSingleTagAmbiguity = 0.20; // Maximum ambiguity when seeing a single AprilTag
         public static final double kMaxCameraToTargetDistance = 3.0; //Maximum distance from camera to AprilTag
 	}

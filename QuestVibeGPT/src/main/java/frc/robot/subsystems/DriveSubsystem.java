@@ -38,6 +38,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants.SwerveModuleConstantsEnum;
 import frc.robot.RobotContainer;
@@ -567,9 +568,12 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             });
         }
 
-        SmartDashboard.putNumber("IMU", this.getPigeon2().getYaw().getValueAsDouble());
-        SmartDashboard.putString("CTR Pose: ", this.getState().Pose.toString());
+        if(DebugTelemetrySubsystems.chassis){
+            SmartDashboard.putNumber("IMU", this.getPigeon2().getYaw().getValueAsDouble());
+            SmartDashboard.putString("CTR Pose: ", this.getState().Pose.toString());
+        }
 
+        
         // update history of the chassis poses, needed for odometry updates using Quest or LL
         poseBuffer.addSample(Timer.getFPGATimestamp(), this.getPose());
     }

@@ -60,9 +60,9 @@ public class RobotContainer {
     public static boolean isReversingControllerAndIMUForRed = true;
 
     public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
-    public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
     public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
     public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
+    public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
 
 
     public RobotContainer() {

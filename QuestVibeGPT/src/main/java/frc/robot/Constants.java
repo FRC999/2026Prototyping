@@ -135,7 +135,7 @@ public final class Constants {
       public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
-      public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot");
+      public static final CANBus kCANBus = new CANBus("canivore1", "./logs/example.hoot");
       public static final Pigeon2Configuration pigeonConfigs = null;
       public static final Slot0Configs steerGains = new Slot0Configs()
           .withKP(100).withKI(0).withKD(0.5)
@@ -164,7 +164,7 @@ public final class Constants {
       public static final double kDriveGearRatio = 6.122448979591837 * (1.00/0.9);
       public static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
       public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFX_Integrated;
-      public static final int kPigeonId = 15;
+      public static final int kPigeonId = 40;
       public static final Current kSlipCurrent = Amps.of(120.0);
       public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.21);
       public static final ClosedLoopOutputType kSteerClosedLoopOutput = ClosedLoopOutputType.Voltage;
@@ -203,10 +203,10 @@ public final class Constants {
 
       /** Module wiring and offsets: MOD0..MOD3 */
       public static enum SwerveModuleConstantsEnum {
-        MOD0(1, 2, 20, -0.282470578125, false, true, false), 
-        MOD1(3, 4, 21, 0.029541015625, true, true, false),
-        MOD2(5, 6, 22, 0.317138875, false, true, false), 
-        MOD3(7, 8, 23, 0.044677734375, true, true, false);
+        MOD0(3, 4, 31, -0.282470578125, false, true, false), 
+        MOD1(1, 2, 30, 0.029541015625, true, true, false),
+        MOD2(7, 8, 33, 0.317138875, false, true, false), 
+        MOD3(5, 6, 32, 0.044677734375, true, true, false);
 
         private final int driveMotorID;
         private final int angleMotorID;

@@ -26,9 +26,11 @@ import gg.questnav.questnav.PoseFrame;
 
 public class OdometryUpdatesSubsystem extends SubsystemBase {
 
+  public boolean gatePassOverride;
+
   /** Creates a new OdometryUpdatesSubsystem. */
   public OdometryUpdatesSubsystem() {
-
+    gatePassOverride = true;
   }
 
   //Update odometry using Quest
@@ -55,7 +57,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       Double tMeas = pf.dataTimestamp();                         // seconds (FPGA time) :contentReference[oaicite:4]{index=4}
       double t = (tMeas != null && tMeas > 1.0) ? tMeas : Timer.getFPGATimestamp();
 
-      if (!gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) continue;
+      if (!gatePassOverride && !gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) continue;
 
       Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
       RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, std);
@@ -106,12 +108,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     double timestampLL = (pe.timestampSeconds > 1.0) ? pe.timestampSeconds
       : Timer.getFPGATimestamp() - pe.latency;
 
-    if(!RobotContainer.questNavSubsystem.isInitialPoseSet() && tagCount > 1 && ambiguity < LLVisionConstants.kMaxQuestCalibrationAmbiguity ) {
-      calibrateQuestFromLL(robotPose);
-      RobotContainer.questNavSubsystem.setInitialPoseSet(true);
-    }
 
-    if (!gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) return;
+    if (!gatePassOverride && !gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) return;
+
+    if(!RobotContainer.questNavSubsystem.isInitialPoseSet() && tagCount > 0 && ambiguity < LLVisionConstants.kMaxQuestCalibrationAmbiguity ) {
+      RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+      calibrateQuestFromLL(robotPose);
+      gatePassOverride = false;
+    }
 
     Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, tagCount, ambiguity);
     RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);

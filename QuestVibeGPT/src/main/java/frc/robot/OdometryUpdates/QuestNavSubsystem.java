@@ -44,7 +44,7 @@ public class QuestNavSubsystem extends SubsystemBase {
   public static double savedQuestAngle;
 
   
-  private boolean initialPoseSet = false;
+  private boolean initialPoseSet;
   public boolean isInitialPoseSet() {
     return initialPoseSet;
   }
@@ -57,6 +57,7 @@ public class QuestNavSubsystem extends SubsystemBase {
 
   /** Creates a new QuestNavSubsystem. */
   public QuestNavSubsystem() {
+    initialPoseSet = false;
     questNav = new QuestNav();
 
     resetToZeroPose();
@@ -322,29 +323,31 @@ public class QuestNavSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
         SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
         SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
+        if(poseFrames != null) {
+          SmartDashboard.putNumber("qFrames", poseFrames.length);
+        }
       }
 
 
       //update pose Frames
       poseFrames = questNav.getAllUnreadPoseFrames();
-      // Display number of frames provided
-      SmartDashboard.putNumber("qFrames", poseFrames.length);
-      if(SwerveConstants.CTR_ODOMETRY_UPDATE_FROM_QUEST && !isCharacterizationRunning) {
-        for (PoseFrame questFrame : poseFrames) {
-          // Get the pose of the Quest
-          Pose2d questPose = questFrame.questPose();
-          // Get timestamp for when the data was sent
-          double timestamp = questFrame.dataTimestamp();
+      // // Display number of frames provided
+      // if(SwerveConstants.CTR_ODOMETRY_UPDATE_FROM_QUEST && !isCharacterizationRunning) {
+      //   for (PoseFrame questFrame : poseFrames) {
+      //     // Get the pose of the Quest
+      //     Pose2d questPose = questFrame.questPose();
+      //     // Get timestamp for when the data was sent
+      //     double timestamp = questFrame.dataTimestamp();
 
-          // Transform by the mount pose to get your robot pose
-          Pose2d robotPose = questPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse());
+      //     // Transform by the mount pose to get your robot pose
+      //     Pose2d robotPose = questPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse());
 
-          // You can put some sort of filtering here if you would like!
+      //     // You can put some sort of filtering here if you would like!
 
-          // Add the measurement to our estimator
-          RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestamp, QuestNavConstants.QUESTNAV_STD_DEVS);
-        }
-      }
+      //     // Add the measurement to our estimator
+      //     RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestamp, QuestNavConstants.QUESTNAV_STD_DEVS);
+      //   }
+      // }
     }
   }
 }

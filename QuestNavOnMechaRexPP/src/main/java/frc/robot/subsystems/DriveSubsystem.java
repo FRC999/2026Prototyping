@@ -4,16 +4,11 @@
 
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.Meters;
-import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.*;
 
-import com.ctre.phoenix6.hardware.CANcoder;
-import com.ctre.phoenix6.hardware.Pigeon2;
-import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.swerve.SwerveDrivetrain;
+import com.ctre.phoenix6.hardware.*;
+import com.ctre.phoenix6.swerve.*;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
-import com.ctre.phoenix6.swerve.SwerveModuleConstants;
-import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
@@ -22,6 +17,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Constants.SwerveConstants.SwerveChassis;
 import frc.robot.Constants.SwerveConstants.SwerveChassis.SwerveModuleConstantsEnum;
@@ -39,26 +35,42 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(SwerveChassis.MaxSpeed * 0.1).withRotationalDeadband(SwerveChassis.MaxAngularRate * 0.1) // Add a 10% deadband
       .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-
+  
       /** Creates a new DriveSubsystem. */
   public DriveSubsystem() {
     super(
         TalonFX::new, TalonFX::new, CANcoder::new,
         TunerConstants.DrivetrainConstants, configureSwerveChassis());
+
+        CommandScheduler.getInstance().registerSubsystem(this);
+
+        imu = this.getPigeon2();
+        //imu.setYaw(0);
+
+        //configureAutoBuilder();
+
+        SmartDashboard.putString("Bot Pose: ", this.getState().Pose.toString());
+
+        System.out.println("*** Configured Drive Subsystem");
   }
 
   public DriveSubsystem(double OdometryUpdateFrequency) {
     super(
       TalonFX::new, TalonFX::new, CANcoder::new,
       TunerConstants.DrivetrainConstants, OdometryUpdateFrequency, configureSwerveChassis());
+    
+    CommandScheduler.getInstance().registerSubsystem(this);
+    
     imu = this.getPigeon2();
+    imu.setYaw(0);
 
     configureAutoBuilder();
   }
 
   public static SwerveModuleConstants[] configureSwerveChassis(){
     return new SwerveModuleConstants[] {
-      TunerConstants.ConstantCreator.createModuleConstants(SwerveModuleConstantsEnum.MOD0.getAngleMotorID(),
+      TunerConstants.ConstantCreator.createModuleConstants(
+            SwerveModuleConstantsEnum.MOD0.getAngleMotorID(),
             SwerveModuleConstantsEnum.MOD0.getDriveMotorID(),
             SwerveModuleConstantsEnum.MOD0.getCancoderID(),
             Rotations.of(SwerveModuleConstantsEnum.MOD0.getAngleOffset()),
@@ -68,7 +80,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             SwerveModuleConstantsEnum.MOD0.isAngleMotorInverted(),
             SwerveModuleConstantsEnum.MOD0.isCANCoderIverted()),
 
-      TunerConstants.ConstantCreator.createModuleConstants(SwerveModuleConstantsEnum.MOD1.getAngleMotorID(),
+      TunerConstants.ConstantCreator.createModuleConstants(
+            SwerveModuleConstantsEnum.MOD1.getAngleMotorID(),
             SwerveModuleConstantsEnum.MOD1.getDriveMotorID(),
             SwerveModuleConstantsEnum.MOD1.getCancoderID(),
             Rotations.of(SwerveModuleConstantsEnum.MOD1.getAngleOffset()),
@@ -78,7 +91,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             SwerveModuleConstantsEnum.MOD1.isAngleMotorInverted(),
             SwerveModuleConstantsEnum.MOD1.isCANCoderIverted()),
             
-      TunerConstants.ConstantCreator.createModuleConstants(SwerveModuleConstantsEnum.MOD2.getAngleMotorID(),
+      TunerConstants.ConstantCreator.createModuleConstants(
+            SwerveModuleConstantsEnum.MOD2.getAngleMotorID(),
             SwerveModuleConstantsEnum.MOD2.getDriveMotorID(),
             SwerveModuleConstantsEnum.MOD2.getCancoderID(),
             Rotations.of(SwerveModuleConstantsEnum.MOD2.getAngleOffset()),
@@ -88,7 +102,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             SwerveModuleConstantsEnum.MOD2.isAngleMotorInverted(),
             SwerveModuleConstantsEnum.MOD2.isCANCoderIverted()),
       
-      TunerConstants.ConstantCreator.createModuleConstants(SwerveModuleConstantsEnum.MOD3.getAngleMotorID(),
+      TunerConstants.ConstantCreator.createModuleConstants(
+            SwerveModuleConstantsEnum.MOD3.getAngleMotorID(),
             SwerveModuleConstantsEnum.MOD3.getDriveMotorID(),
             SwerveModuleConstantsEnum.MOD3.getCancoderID(),
             Rotations.of(SwerveModuleConstantsEnum.MOD3.getAngleOffset()),
@@ -115,12 +130,12 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
 
   public void drive(double xV_m_per_s, double yV_m_per_s, double omega_rad_per_s) {
-    this.setControl(
-      drive.withVelocityX(xV_m_per_s)
-        .withVelocityY(yV_m_per_s)
-        .withRotationalRate(omega_rad_per_s)
-    );
-    previousOmegaRotationCommand = omega_rad_per_s/SwerveChassis.MaxAngularRate;
+    // this.setControl(
+    //   drive.withVelocityX(xV_m_per_s)
+    //     .withVelocityY(yV_m_per_s)
+    //     .withRotationalRate(omega_rad_per_s)
+    // );
+    // previousOmegaRotationCommand = omega_rad_per_s/SwerveChassis.MaxAngularRate;
   }
 
   public double getPitch() {
@@ -160,6 +175,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
   public void periodic() {
     // This method will be called once per scheduler run
 
-    SmartDashboard.putString("Bot Pose: ", getPose().toString());
+    SmartDashboard.putString("Bot Pose: ", this.getState().Pose.toString());  
+    SmartDashboard.putString("Bot Speed: ", this.getState().Speeds.toString());
+    //SmartDashboard.putString("Module Position: ", this.getState().ModulePositions.toString());
+
+    System.out.println("TEST\n");
   }
 }

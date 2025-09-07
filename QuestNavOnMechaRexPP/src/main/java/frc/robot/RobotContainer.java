@@ -10,7 +10,6 @@ import frc.robot.Constants.OperatorConstants;
 import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.DriveSubsystem;
-import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.QuestNavSubsystem;
 
 import static edu.wpi.first.units.Units.Rotation;
@@ -29,6 +28,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -41,9 +41,8 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
-  private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   public static final DriveSubsystem driveSubsystem = new DriveSubsystem();
-  public static final QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
+  //public static final QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   // public static final ArmSubsystem armSubsystem = new ArmSubsystem();
 
   public static Controller xboxDriveController = new Controller(ControllerDevice.XBOX_CONTROLLER);
@@ -56,10 +55,16 @@ public class RobotContainer {
     configureDriverInterface();
 
     driveSubsystem.setDefaultCommand(
-        new DriveManuallyCommand(
-            () -> getDriverXAxis(),
-            () -> getDriverYAxis(),
-            () -> getDriverOmegaAxis()));
+      new DriveManuallyCommand(
+          () -> getDriverXAxis(),
+          () -> getDriverYAxis(),
+          () -> getDriverOmegaAxis()));
+
+    // driveSubsystem.setDefaultCommand(
+    //     new DriveManuallyCommand(
+    //         () -> getDriverXAxis(),
+    //         () -> getDriverYAxis(),
+    //         () -> getDriverOmegaAxis()));
   }
 
   private void configureDriverInterface() {}
@@ -75,21 +80,16 @@ public class RobotContainer {
    */
   private void configureBindings() {
 
-    new JoystickButton(xboxDriveController, 2)
-      .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose2d(1, 2, Rotation2d.kZero)))
-      .andThen(new InstantCommand(() -> driveSubsystem.setOdometryPoseToSpecificPose(new Pose2d(1, 2, Rotation2d.kZero))))
-      );
+    // new JoystickButton(xboxDriveController, 2)
+    //   .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose2d(1, 2, Rotation2d.kZero)))
+    //   .andThen(new InstantCommand(() -> driveSubsystem.setOdometryPoseToSpecificPose(new Pose2d(1, 2, Rotation2d.kZero))))
+    //   );
+
+    new JoystickButton(xboxDriveController, 1)
+      .onTrue(new PrintCommand("Pose: " + driveSubsystem.getPose().toString()));
   }
 
-  // private void testArm() {
-  //   new JoystickButton(xboxDriveController, 1)
-  //     .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
-  //     .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
-
-  //   new JoystickButton(xboxDriveController, 2)
-  //     .onTrue(new InstantCommand(() -> armSubsystem.runArmMotors(0.1)))
-  //     .onFalse(new InstantCommand(() -> armSubsystem.stopMotors()));
-  // }
+  
 
     // Driver preferred controls
     private double getDriverXAxis() {

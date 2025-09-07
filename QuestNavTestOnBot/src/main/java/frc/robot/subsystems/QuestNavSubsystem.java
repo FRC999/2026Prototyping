@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import gg.questnav.questnav.PoseFrame;
 import gg.questnav.questnav.QuestNav;
 
 public class QuestNavSubsystem extends SubsystemBase {
@@ -32,18 +33,22 @@ public class QuestNavSubsystem extends SubsystemBase {
   }
 
   public Pose2d getNavPose() {
-    Pose2d qPose = questNav.getPose();
-    Pose2d robotPose = qPose.transformBy(ROBOT_TO_QUEST.inverse());
+    PoseFrame[] qPoseFrame = questNav.getAllUnreadPoseFrames();
+    Pose2d robotPose = new Pose2d();
+    if(qPoseFrame.length > 0){
+      Pose2d qPose = qPoseFrame[qPoseFrame.length - 1].questPose();
+      robotPose = qPose.transformBy(ROBOT_TO_QUEST.inverse());
+    }
     return robotPose;
     // return qPose;  
   }
 
   public double getQTimeStamp() {
-    return questNav.getDataTimestamp();
+    return 0;
   }
 
   public double getQAppTimeStamp() {
-    return questNav.getAppTimestamp();
+    return questNav.getAppTimestamp().getAsDouble();
   }
 
   public void resetQuestOdometry(Pose2d robotPose){

@@ -57,10 +57,11 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       Double tMeas = pf.dataTimestamp();                         // seconds (FPGA time) :contentReference[oaicite:4]{index=4}
       double t = (tMeas != null && tMeas > 1.0) ? tMeas : Timer.getFPGATimestamp();
 
-      if (!gatePassOverride && !gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) continue;
+      if (!gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) continue;
 
       Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
-      RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, std);
+      RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
+      System.out.println("TEST");
     }
   }
 
@@ -114,11 +115,12 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if(!RobotContainer.questNavSubsystem.isInitialPoseSet() && tagCount > 0 && ambiguity < LLVisionConstants.kMaxQuestCalibrationAmbiguity ) {
       RobotContainer.questNavSubsystem.setInitialPoseSet(true);
       calibrateQuestFromLL(robotPose);
+      //RobotContainer.driveSubsystem.resetCTREPose(robotPose);
       gatePassOverride = false;
     }
 
     Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, tagCount, ambiguity);
-    RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+    //RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
   }
 
   private void calibrateQuestFromLL(Pose2d robotPose) {
@@ -135,8 +137,12 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       fuseQuestNavAllUnread();
     }
 
-    for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-      fuseLLCamera(llcamera);
+    if(!RobotContainer.questNavSubsystem.isInitialPoseSet()) {
+
+      for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+        fuseLLCamera(llcamera);
+      }
+      
     }
   }
 }

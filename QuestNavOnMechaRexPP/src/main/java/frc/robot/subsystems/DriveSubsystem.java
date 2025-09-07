@@ -179,6 +179,6 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     SmartDashboard.putString("Bot Speed: ", this.getState().Speeds.toString());
     //SmartDashboard.putString("Module Position: ", this.getState().ModulePositions.toString());
 
-    System.out.println("TEST\n");
+    //System.out.println("TEST\n");
   }
 }

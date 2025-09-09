@@ -35,16 +35,18 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
   //Update odometry using Quest
   private void fuseQuestNavAllUnread() {
+    // System.out.println(Timer.getFPGATimestamp());
     PoseFrame[] frames = RobotContainer.questNavSubsystem.getAllUnreadPoseFrames();
+    System.out.println(Timer.getFPGATimestamp());
     if (frames == null || frames.length == 0) return;
-
+    // System.out.println(Timer.getFPGATimestamp());
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
     ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
 
 
     double speedNow = Math.hypot(chassisSpeeds.vxMetersPerSecond, chassisSpeeds.vyMetersPerSecond);
     Pose2d poseNow = swerveDriveState.Pose;
-
+    boolean gatePassOverrideIntermediate = gatePassOverride;
     for (PoseFrame pf : frames) {
       if (pf == null) continue;
 
@@ -57,16 +59,24 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       Double tMeas = pf.dataTimestamp();                         // seconds (FPGA time) :contentReference[oaicite:4]{index=4}
       double t = (tMeas != null && tMeas > 1.0) ? tMeas : Timer.getFPGATimestamp();
 
-      if (!gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) continue;
-
-      Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
-      RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
-      System.out.println("TEST");
+      if (gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) {
+        Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
+        RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
+        //System.out.println(Timer.getFPGATimestamp());
+        gatePassOverrideIntermediate = false;
+        // System.out.println("TEST");
+      } else {
+        System.out.println("g: " + robotPose.toString() + " " + t);
+      }
     }
+    gatePassOverride = gatePassOverrideIntermediate;
   }
 
   /** Innovation gating with latency compensation via buffered prediction. */
   private boolean gateMeasurement(Pose2d robotPose, double timestamp, boolean strict, double speedNow, Pose2d poseNow) { 
+    if (gatePassOverride) {
+      return true;
+    }
     //Either pose from driveSubsystem at timestamp or current pose of bot
     Pose2d chassisPoseAtTimestamp = RobotContainer.driveSubsystem.getSample(timestamp).orElse(poseNow);
 
@@ -113,14 +123,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if (!gatePassOverride && !gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) return;
 
     if(!RobotContainer.questNavSubsystem.isInitialPoseSet() && tagCount > 0 && ambiguity < LLVisionConstants.kMaxQuestCalibrationAmbiguity ) {
-      RobotContainer.questNavSubsystem.setInitialPoseSet(true);
       calibrateQuestFromLL(robotPose);
-      //RobotContainer.driveSubsystem.resetCTREPose(robotPose);
+      RobotContainer.driveSubsystem.resetCTREPose(robotPose);
       gatePassOverride = false;
+      RobotContainer.questNavSubsystem.setInitialPoseSet(true);
     }
 
     Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, tagCount, ambiguity);
-    //RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+    RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
   }
 
   private void calibrateQuestFromLL(Pose2d robotPose) {
@@ -131,7 +141,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
-
+    // System.out.println(Timer.getFPGATimestamp());
     if(RobotContainer.questNavSubsystem.isInitialPoseSet()){ //Only use quest if initial quest pose is set
       //QuestNav: process ALL unread PoseFrames (high trust)
       fuseQuestNavAllUnread();

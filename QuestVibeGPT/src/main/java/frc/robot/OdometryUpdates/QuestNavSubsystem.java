@@ -19,6 +19,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -323,6 +324,7 @@ public class QuestNavSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
         SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
         SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
+        SmartDashboard.putNumber("Time FPGA: ", Timer.getFPGATimestamp());
         if(poseFrames != null) {
           SmartDashboard.putNumber("qFrames", poseFrames.length);
         }

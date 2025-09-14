@@ -246,61 +246,6 @@ public final class Constants {
           true, 
           false);
 
-          
-      /** Module wiring and offsets: MOD0..MOD3 */
-      // public static enum SwerveModuleConstantsEnum {
-      //   MOD0(3, 4, 31, -0.282470578125, false, true, false), 
-      //   MOD1(1, 2, 30, 0.029541015625, true, true, false),
-      //   MOD2(7, 8, 33, 0.317138875, false, true, false), 
-      //   MOD3(5, 6, 32, 0.044677734375, true, true, false);
-
-      //   private final int driveMotorID;
-      //   private final int angleMotorID;
-      //   private final int cancoderID;
-      //   private final double angleOffset;
-      //   private final boolean driveMotorInverted;
-      //   private final boolean angleMotorInverted;
-      //   private final boolean cancoderInverted;
-
-      //   SwerveModuleConstantsEnum(int driveMotorID, int angleMotorID, int cancoderID, double angleOffset,
-      //       boolean driveMotorInverted, boolean angleMotorInverted, boolean cancoderInverted) {
-      //     this.driveMotorID = driveMotorID;
-      //     this.angleMotorID = angleMotorID;
-      //     this.cancoderID = cancoderID;
-      //     this.angleOffset = angleOffset;
-      //     this.driveMotorInverted = driveMotorInverted;
-      //     this.angleMotorInverted = angleMotorInverted;
-      //     this.cancoderInverted = cancoderInverted;
-      //   }
-
-      //   public int getDriveMotorID() {
-      //     return driveMotorID;
-      //   }
-
-      //   public int getAngleMotorID() {
-      //     return angleMotorID;
-      //   }
-
-      //   public int getCancoderID() {
-      //     return cancoderID;
-      //   }
-
-      //   public double getAngleOffset() {
-      //     return angleOffset;
-      //   }
-
-      //   public boolean isDriveMotorInverted() {
-      //     return driveMotorInverted;
-      //   }
-
-      //   public boolean isAngleMotorInverted() {
-      //     return angleMotorInverted;
-      //   }
-
-      //   public boolean isCancoderInverted() {
-      //     return cancoderInverted;
-      //   }
-      // }
     }
 
   }

@@ -37,7 +37,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private void fuseQuestNavAllUnread() {
     // System.out.println(Timer.getFPGATimestamp());
     PoseFrame[] frames = RobotContainer.questNavSubsystem.getAllCurrentPoseframes();
-    System.out.println(Timer.getFPGATimestamp());
+    // System.out.println(Timer.getFPGATimestamp());
     if (frames == null || frames.length == 0) return;
     // System.out.println(Timer.getFPGATimestamp());
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
@@ -62,7 +62,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       if (gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) {
         Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
         RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
-        //System.out.println(Timer.getFPGATimestamp());
+        System.out.println("T");
+        System.out.println(Timer.getFPGATimestamp());
         gatePassOverrideIntermediate = false;
         // System.out.println("TEST");
       } else {

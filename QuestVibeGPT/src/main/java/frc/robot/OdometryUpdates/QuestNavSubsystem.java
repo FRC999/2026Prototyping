@@ -305,16 +305,16 @@ public class QuestNavSubsystem extends SubsystemBase {
   public PoseFrame[] getAllCurrentPoseframes() {
     if (poseFrames == null) return null;
 
-        return Arrays.stream(poseFrames)
+      return Arrays.stream(poseFrames)
         .map(pf -> pf == null ? null :
           new PoseFrame(
             new Pose2d(pf.questPose().getTranslation(), pf.questPose().getRotation()),
             pf.dataTimestamp(),
             pf.appTimestamp(),
             pf.frameCount()
+          )
         )
-    )
-    .toArray(PoseFrame[]::new);
+      .toArray(PoseFrame[]::new);
   }
 
   /**

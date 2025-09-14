@@ -36,7 +36,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   //Update odometry using Quest
   private void fuseQuestNavAllUnread() {
     // System.out.println(Timer.getFPGATimestamp());
-    PoseFrame[] frames = RobotContainer.questNavSubsystem.getAllUnreadPoseFrames();
+    PoseFrame[] frames = RobotContainer.questNavSubsystem.getAllCurrentPoseframes();
     System.out.println(Timer.getFPGATimestamp());
     if (frames == null || frames.length == 0) return;
     // System.out.println(Timer.getFPGATimestamp());

@@ -10,7 +10,10 @@ import com.ctre.phoenix6.Utils;
 import frc.robot.OdometryUpdates.QuestNavConstants;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
+
+import org.opencv.core.Point;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
@@ -296,6 +299,22 @@ public class QuestNavSubsystem extends SubsystemBase {
   public PoseFrame[] getAllUnreadPoseFrames() {
     // Delegate straight to the SDK. This call should return and CLEAR the unread queue.
     return questNav.getAllUnreadPoseFrames();
+  }
+
+  /** Return a copy of all current PoseFrame elements */
+  public PoseFrame[] getAllCurrentPoseframes() {
+    if (poseFrames == null) return null;
+
+        return Arrays.stream(poseFrames)
+        .map(pf -> pf == null ? null :
+          new PoseFrame(
+            new Pose2d(pf.questPose().getTranslation(), pf.questPose().getRotation()),
+            pf.dataTimestamp(),
+            pf.appTimestamp(),
+            pf.frameCount()
+        )
+    )
+    .toArray(PoseFrame[]::new);
   }
 
   /**

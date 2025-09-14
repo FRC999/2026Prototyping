@@ -4,25 +4,31 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.KilogramSquareMeters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Volts;
+
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.configs.*;
-import com.ctre.phoenix6.hardware.*;
-import com.ctre.phoenix6.signals.*;
-import com.ctre.phoenix6.swerve.*;
-import com.ctre.phoenix6.swerve.SwerveModuleConstants.*;
+import com.ctre.phoenix6.configs.CANcoderConfiguration;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.Pigeon2Configuration;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
+import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
+import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 
-import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.*;
-import frc.robot.subsystems.DriveSubsystem;
-import static edu.wpi.first.units.Units.*;
-
-import java.util.HashMap;
-import java.util.Map;
+import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.MomentOfInertia;
+import edu.wpi.first.units.measure.Voltage;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -201,60 +207,100 @@ public final class Constants {
           .withPigeon2Id(kPigeonId)
           .withPigeon2Configs(pigeonConfigs);
 
+      public static record SwerveModuleConstantsRecord(int driveMotorID, int angleMotorID, int cancoderID, double angleOffset,
+        boolean driveMotorInverted, boolean angleMotorInverted, boolean cancoderInverted) {}
+
+        public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord(
+          3, 
+          4, 
+          31, 
+          -0.282470578125, 
+          false, 
+          true, 
+          false);
+
+        public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord(
+          1, 
+          2, 
+          30, 
+          0.029541015625, 
+          true, 
+          true, 
+          false);
+
+        public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord(
+          7, 
+          8, 
+          33, 
+          0.317138875, 
+          false, 
+          true, 
+          false);
+
+        public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord(
+          5, 
+          6, 
+          32, 
+          0.044677734375, 
+          true, 
+          true, 
+          false);
+
+          
       /** Module wiring and offsets: MOD0..MOD3 */
-      public static enum SwerveModuleConstantsEnum {
-        MOD0(3, 4, 31, -0.282470578125, false, true, false), 
-        MOD1(1, 2, 30, 0.029541015625, true, true, false),
-        MOD2(7, 8, 33, 0.317138875, false, true, false), 
-        MOD3(5, 6, 32, 0.044677734375, true, true, false);
+      // public static enum SwerveModuleConstantsEnum {
+      //   MOD0(3, 4, 31, -0.282470578125, false, true, false), 
+      //   MOD1(1, 2, 30, 0.029541015625, true, true, false),
+      //   MOD2(7, 8, 33, 0.317138875, false, true, false), 
+      //   MOD3(5, 6, 32, 0.044677734375, true, true, false);
 
-        private final int driveMotorID;
-        private final int angleMotorID;
-        private final int cancoderID;
-        private final double angleOffset;
-        private final boolean driveMotorInverted;
-        private final boolean angleMotorInverted;
-        private final boolean cancoderInverted;
+      //   private final int driveMotorID;
+      //   private final int angleMotorID;
+      //   private final int cancoderID;
+      //   private final double angleOffset;
+      //   private final boolean driveMotorInverted;
+      //   private final boolean angleMotorInverted;
+      //   private final boolean cancoderInverted;
 
-        SwerveModuleConstantsEnum(int driveMotorID, int angleMotorID, int cancoderID, double angleOffset,
-            boolean driveMotorInverted, boolean angleMotorInverted, boolean cancoderInverted) {
-          this.driveMotorID = driveMotorID;
-          this.angleMotorID = angleMotorID;
-          this.cancoderID = cancoderID;
-          this.angleOffset = angleOffset;
-          this.driveMotorInverted = driveMotorInverted;
-          this.angleMotorInverted = angleMotorInverted;
-          this.cancoderInverted = cancoderInverted;
-        }
+      //   SwerveModuleConstantsEnum(int driveMotorID, int angleMotorID, int cancoderID, double angleOffset,
+      //       boolean driveMotorInverted, boolean angleMotorInverted, boolean cancoderInverted) {
+      //     this.driveMotorID = driveMotorID;
+      //     this.angleMotorID = angleMotorID;
+      //     this.cancoderID = cancoderID;
+      //     this.angleOffset = angleOffset;
+      //     this.driveMotorInverted = driveMotorInverted;
+      //     this.angleMotorInverted = angleMotorInverted;
+      //     this.cancoderInverted = cancoderInverted;
+      //   }
 
-        public int getDriveMotorID() {
-          return driveMotorID;
-        }
+      //   public int getDriveMotorID() {
+      //     return driveMotorID;
+      //   }
 
-        public int getAngleMotorID() {
-          return angleMotorID;
-        }
+      //   public int getAngleMotorID() {
+      //     return angleMotorID;
+      //   }
 
-        public int getCancoderID() {
-          return cancoderID;
-        }
+      //   public int getCancoderID() {
+      //     return cancoderID;
+      //   }
 
-        public double getAngleOffset() {
-          return angleOffset;
-        }
+      //   public double getAngleOffset() {
+      //     return angleOffset;
+      //   }
 
-        public boolean isDriveMotorInverted() {
-          return driveMotorInverted;
-        }
+      //   public boolean isDriveMotorInverted() {
+      //     return driveMotorInverted;
+      //   }
 
-        public boolean isAngleMotorInverted() {
-          return angleMotorInverted;
-        }
+      //   public boolean isAngleMotorInverted() {
+      //     return angleMotorInverted;
+      //   }
 
-        public boolean isCancoderInverted() {
-          return cancoderInverted;
-        }
-      }
+      //   public boolean isCancoderInverted() {
+      //     return cancoderInverted;
+      //   }
+      // }
     }
 
   }

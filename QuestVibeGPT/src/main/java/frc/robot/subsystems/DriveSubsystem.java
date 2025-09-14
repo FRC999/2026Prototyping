@@ -40,7 +40,6 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
-import frc.robot.Constants.OperatorConstants.SwerveConstants.SwerveModuleConstantsEnum;
 import frc.robot.RobotContainer;
 
 /**
@@ -170,41 +169,43 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return new DriveSubsystem(
                 SwerveConstants.DrivetrainConstants,
                 SwerveConstants.ConstantCreator.createModuleConstants(
-                        SwerveModuleConstantsEnum.MOD0.getAngleMotorID(),
-                        SwerveModuleConstantsEnum.MOD0.getDriveMotorID(),
-                        SwerveModuleConstantsEnum.MOD0.getCancoderID(),
-                        Rotations.of(SwerveModuleConstantsEnum.MOD0.getAngleOffset()),
+                        SwerveConstants.MOD0.angleMotorID(),
+                        SwerveConstants.MOD0.driveMotorID(),
+                        SwerveConstants.MOD0.cancoderID(),
+                        Rotations.of(SwerveConstants.MOD0.angleOffset()),
                         Inches.of(10.335), Inches.of(10.335),
-                        SwerveModuleConstantsEnum.MOD0.isDriveMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD0.isAngleMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD0.isCancoderInverted()),
+                        SwerveConstants.MOD0.driveMotorInverted(),
+                        SwerveConstants.MOD0.angleMotorInverted(),
+                        SwerveConstants.MOD0.cancoderInverted()),
                 SwerveConstants.ConstantCreator.createModuleConstants(
-                        SwerveModuleConstantsEnum.MOD1.getAngleMotorID(),
-                        SwerveModuleConstantsEnum.MOD1.getDriveMotorID(),
-                        SwerveModuleConstantsEnum.MOD1.getCancoderID(),
-                        Rotations.of(SwerveModuleConstantsEnum.MOD1.getAngleOffset()),
+                        SwerveConstants.MOD1.angleMotorID(),
+                        SwerveConstants.MOD1.driveMotorID(),
+                        SwerveConstants.MOD1.cancoderID(),
+                        Rotations.of(SwerveConstants.MOD1.angleOffset()),
                         Inches.of(10.335), Inches.of(-10.335),
-                        SwerveModuleConstantsEnum.MOD1.isDriveMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD1.isAngleMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD1.isCancoderInverted()),
+                        SwerveConstants.MOD1.driveMotorInverted(),
+                        SwerveConstants.MOD1.angleMotorInverted(),
+                        SwerveConstants.MOD1.cancoderInverted()),
                 SwerveConstants.ConstantCreator.createModuleConstants(
-                        SwerveModuleConstantsEnum.MOD2.getAngleMotorID(),
-                        SwerveModuleConstantsEnum.MOD2.getDriveMotorID(),
-                        SwerveModuleConstantsEnum.MOD2.getCancoderID(),
-                        Rotations.of(SwerveModuleConstantsEnum.MOD2.getAngleOffset()),
+                        SwerveConstants.MOD2.angleMotorID(),
+                        SwerveConstants.MOD2.driveMotorID(),
+                        SwerveConstants.MOD2.cancoderID(),
+                        Rotations.of(SwerveConstants.MOD2.angleOffset()),
                         Inches.of(-10.335), Inches.of(10.335),
-                        SwerveModuleConstantsEnum.MOD2.isDriveMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD2.isAngleMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD2.isCancoderInverted()),
+                        SwerveConstants.MOD2.driveMotorInverted(),
+                        SwerveConstants.MOD2.angleMotorInverted(),
+                        SwerveConstants.MOD2.cancoderInverted()),
                 SwerveConstants.ConstantCreator.createModuleConstants(
-                        SwerveModuleConstantsEnum.MOD3.getAngleMotorID(),
-                        SwerveModuleConstantsEnum.MOD3.getDriveMotorID(),
-                        SwerveModuleConstantsEnum.MOD3.getCancoderID(),
-                        Rotations.of(SwerveModuleConstantsEnum.MOD3.getAngleOffset()),
+                        SwerveConstants.MOD3.angleMotorID(),
+                        SwerveConstants.MOD3.driveMotorID(),
+                        SwerveConstants.MOD3.cancoderID(),
+                        Rotations.of(SwerveConstants.MOD3.angleOffset()),
                         Inches.of(-10.335), Inches.of(-10.335),
-                        SwerveModuleConstantsEnum.MOD3.isDriveMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD3.isAngleMotorInverted(),
-                        SwerveModuleConstantsEnum.MOD3.isCancoderInverted()));
+                        SwerveConstants.MOD3.driveMotorInverted(),
+                        SwerveConstants.MOD3.angleMotorInverted(),
+                        SwerveConstants.MOD3.cancoderInverted()));
+
+
     }
 
     public DriveSubsystem(

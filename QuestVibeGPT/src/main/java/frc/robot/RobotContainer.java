@@ -6,6 +6,7 @@ package frc.robot;
 
 import frc.robot.Constants;
 import frc.robot.Constants.PathPlannerConstants;
+import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.OIContants.ControllerDevice;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
@@ -55,7 +56,7 @@ public class RobotContainer {
     // Use open-loop control for drive motors
     private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
-    private final Controller xboxDriveController = new Controller(ControllerDevice.XBOX_CONTROLLER);
+    private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
     public static boolean isAllianceRed = false;
     public static boolean isReversingControllerAndIMUForRed = true;
 

@@ -24,9 +24,9 @@ public class Controller extends Joystick {
     private double cubeDeadbandOmega;
     
     public Controller(ControllerDevice cd) {
-        super(cd.getPortNumber()); // This needs to be done because the joystick parent class has a non-default constructor
+        super(cd.portNumber()); // This needs to be done because the joystick parent class has a non-default constructor
         this.cd = cd;
-        this.cdt = cd.getControllerDeviceType();  // This is done so the controller type is not 
+        this.cdt = cd.controllerDeviceType();  // This is done so the controller type is not 
                                                   // re-evaluated every time you need to get axis value
         
         /**
@@ -37,9 +37,9 @@ public class Controller extends Joystick {
          * all analog axis. Note that "exercising" old joystics may greatly reduce the deadbands on specific axis. So do not give up
          * on the equipment that may still be used.
          */
-        this.dx= cd.getDeadbandX();
-        this.dy= cd.getDeadbandY();
-        this.dm= cd.getDeadbandOmega();
+        this.dx= cd.deadbandX();
+        this.dy= cd.deadbandY();
+        this.dm= cd.deadbandOmega();
 
         /**
          * These flags determie whether a particular joystic should use cube driving, which will use not a linear input (e.g. a value from joystick axis)
@@ -49,8 +49,8 @@ public class Controller extends Joystick {
          * make small teleop position changes easier to do. The algorithm that we "borrowed" from team 125 nu23 code properly accounts for the
          * deadband range as well. We optimized it by reducing the need for recurring calculations, and made it a bit more readable by using ternary operators.
          */
-        this.cubeControllerLeftStick=cd.isCubeControllerLeftStick();
-        this.cubeControllerRightStick=cd.isCubeControllerRightStick();
+        this.cubeControllerLeftStick=cd.cubeControllerLeftStick();
+        this.cubeControllerRightStick=cd.cubeControllerRightStick();
 
         this.cubeDeadbandX = dx*dx*dx;
         this.cubeDeadbandY = dy*dy*dy;

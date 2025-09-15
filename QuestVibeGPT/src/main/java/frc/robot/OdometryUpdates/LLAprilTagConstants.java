@@ -12,8 +12,6 @@ public class LLAprilTagConstants {
 
     public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout - changes year-to-year
 
-    
-
 		public static enum LLCamera {
 
 			LLLEFT(

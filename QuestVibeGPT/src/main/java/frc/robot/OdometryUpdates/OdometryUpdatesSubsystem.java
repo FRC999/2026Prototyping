@@ -50,10 +50,11 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
    */
   /* ========= State machine for initial alignment ========= */
   private enum VisionState {
-    SEEDING, SEEKING_TAGS, CALIBRATED
+    INITIALIZE, SEEKING_TAGS_Q, SEEKING_TAGS_NO_Q, CALIBRATED_Q, CALIBRATED_NO_Q
   }
 
-  private VisionState state = VisionState.SEEDING;
+  private VisionState state = VisionState.INITIALIZE;
+  private int forceTransitionFromInitialize = 50*10; // Cycles to wait in initialize if quest is not on in beginning
 
   public boolean gatePassOverride;
 
@@ -176,17 +177,69 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   public void periodic() {
     // This method will be called once per scheduler run
     // System.out.println(Timer.getFPGATimestamp());
-    if(RobotContainer.questNavSubsystem.isInitialPoseSet()){ //Only use quest if initial quest pose is set
-      //QuestNav: process ALL unread PoseFrames (high trust)
-      fuseQuestNavAllUnread();
-    }
 
-    if(!RobotContainer.questNavSubsystem.isInitialPoseSet()) {
+    switch (state) {
+      case INITIALIZE -> {
+        // If Quest is On
+        if (RobotContainer.questNavSubsystem.isTracking()){
+          // Set quest IMU to initial yaw based on alliance
+          RobotContainer.questNavSubsystem.resetQuestIMUToAngle(OdometryConstants.initialYawForAlliance().getDegrees());
+          state = VisionState.SEEKING_TAGS_Q;
+        } else {
+          if(forceTransitionFromInitialize-- < 0){
+            state = VisionState.SEEKING_TAGS_NO_Q;
+          }
+        }
+        RobotContainer.llAprilTagSubsystem.setLLOrientation(OdometryConstants.initialYawForAlliance().getDegrees());
 
-      for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-        fuseLLCamera(llcamera);
       }
-      
+      case SEEKING_TAGS_Q -> {
+        if (RobotContainer.questNavSubsystem.isTracking()){
+          Pose2d rp = RobotContainer.questNavSubsystem.getQuestRobotPose();
+          if(!rp.equals(QuestNavConstants.nullPose)){
+            RobotContainer.llAprilTagSubsystem.setLLOrientation(rp.getRotation().getDegrees());
+          }
+          
+          state = VisionState.CALIBRATED_Q;
+        } else {
+          state = VisionState.SEEKING_TAGS_NO_Q;
+          // No need to update ll IMU because already updated by Quest
+        }
+        // Look for a good LL pose; when found, anchor EKF and mark CALIBRATED.
+        boolean anchored =
+            tryCalibrateFromLimelight(llLeftName) | tryCalibrateFromLimelight(llRightName);
+        if (anchored) state = VisionState.CALIBRATED;
+      }
+      case SEEKING_TAGS_NO_Q -> {
+        // Look for a good LL pose; when found, anchor EKF and mark CALIBRATED.
+        boolean anchored =
+            tryCalibrateFromLimelight(llLeftName) | tryCalibrateFromLimelight(llRightName);
+        if (anchored) state = VisionState.CALIBRATED;
+      }
+      case CALIBRATED_Q -> {
+        // Normal fusion once anchored.
+        fuseQuestNavAllUnread(/*allowQuest=*/true);
+        fuseLimelight(llLeftName);
+        fuseLimelight(llRightName);
+      }
+      case CALIBRATED_NO_Q -> {
+        // Normal fusion once anchored.
+        fuseQuestNavAllUnread(/*allowQuest=*/true);
+        fuseLimelight(llLeftName);
+        fuseLimelight(llRightName);
+      }
     }
+    // if(RobotContainer.questNavSubsystem.isInitialPoseSet()){ //Only use quest if initial quest pose is set
+    //   //QuestNav: process ALL unread PoseFrames (high trust)
+    //   fuseQuestNavAllUnread();
+    // }
+
+    // if(!RobotContainer.questNavSubsystem.isInitialPoseSet()) {
+
+    //   for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+    //     fuseLLCamera(llcamera);
+    //   }
+      
+    // }
   }
 }

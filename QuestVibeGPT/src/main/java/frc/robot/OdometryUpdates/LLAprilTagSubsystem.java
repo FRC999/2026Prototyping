@@ -105,6 +105,12 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return LLCamera.values();
   }
 
+  public void setLLOrientation(double yaw){
+    for (LLCamera llcamera : LLCamera.values()) {
+      LimelightHelpers.SetRobotOrientation(llcamera.getCameraName(),  yaw, 0,0,0,0,0);
+    }
+  }
+
   @Override
   public void periodic() {
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();

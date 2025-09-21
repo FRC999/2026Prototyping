@@ -26,13 +26,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class LLAprilTagSubsystem extends SubsystemBase {
   public static AprilTagFieldLayout fieldLayout;
-
-  private Pose2d bestPose;
-  private Pose2d bestPoseLL4;
-  private double bestPoseTimestamp;
-  private double bestPoseTimestampLL4;
-  private boolean bestVisible;
-  private boolean bestVisibleLL4;
+  
+  private boolean imuModeSet = false;
 
   private double maxBestAmbiguity = 0.5; // Puts pretty high standard on AprilTag position determination
 
@@ -58,22 +53,6 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     } else {
       return null; 
     }
-  }
-
-  public boolean isAprilTagVisibleBySomeCamera() {
-    return bestVisible; 
-  }
-
-  public boolean isAprilTagVisibleByLL4() {
-    return bestVisibleLL4; 
-  }
-
-  public Pose2d getBestPoseAllCameras() {
-    return bestPose;
-  }
-
-  public Pose2d getBestPoseLL4s() {
-    return bestPoseLL4;
   }
 
   public boolean isAprilTagVisible(String cameraName) {
@@ -131,8 +110,17 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
     ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
 
+    // One-time IMU mode set: 1 = mirror external yaw into LL IMU (keeps MT2/IMU consistent).
+    if (!imuModeSet) {
+      for (LLCamera llcamera : LLCamera.values()) {
+        LimelightHelpers.SetIMUMode(llcamera.getCameraName(),  LLAprilTagConstants.LLVisionConstants.LL_IMU_MODE);
+      }
+      imuModeSet = true;
+    }
+
     for (LLCamera llcamera : LLCamera.values()) {
       String cn = llcamera.getCameraName();
+      
     
 
       // Update LLs with current YAW, so they can return correct position for Megatag2

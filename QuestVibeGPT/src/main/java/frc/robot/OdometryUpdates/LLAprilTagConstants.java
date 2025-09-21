@@ -11,8 +11,11 @@ public class LLAprilTagConstants {
     public static final class LLVisionConstants {
 
     public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout - changes year-to-year
-
-		public static enum LLCamera {
+	
+	/** Limelight IMU mode for MT2: 0=external only, 1=external seeds LL IMU, 2=internal. */
+	public static final int LL_IMU_MODE = 1;
+		
+	public static enum LLCamera {
 
 			LLLEFT(
 				"limelight-fl"

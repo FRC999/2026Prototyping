@@ -24,13 +24,46 @@ import frc.robot.lib.LimelightHelpers;
 import frc.robot.lib.QuestHelpers;
 import gg.questnav.questnav.PoseFrame;
 
+/**
+ * This class is rewritten with Finite State Machine logic (FMS)
+ */
 public class OdometryUpdatesSubsystem extends SubsystemBase {
+
+  /**
+   * LL YAW needs to set as precise as possible before LL can tell you the Pose2D of the bot based on AT.
+   * That Yaw is necessary for disambiguation. However, if you rotate the bot after you turn it on, but before
+   * it sees any AT, its internal IMU (Pigeon) may not be good enough to track the move.
+   * So, the IMU updates necessary for LL disambiguation will be coming from Quest rather that the robot odometry
+   * until the SEEDING is done.
+   * 
+   * The robot posing on the field will be - put it against the game element with exact known angle (e.g reef in 2025)
+   * Make sure that angle is known in OdometryConstants. Once the bot is UP, put it to whatever position you need in a starting area,
+   * so it sees ATs.
+   * Once it sees the ATs, the LL Yaw disambiguation updates will come from the robot odometry.
+   * 
+   * The robot YAW will be initially set to whatever value is indicated in the OdometryConstants. So, if the
+   * ATs do not become visible at the start of auto, or Quest did not come on, the Yaw currently in the odometry will be used. 
+   * 
+   * FMS states:
+   * SEEDING - initial location on the field; QUEST is effectively disabled for odometry updates, but will use its current angle
+   * for setting LL Yaw.
+   */
+  /* ========= State machine for initial alignment ========= */
+  private enum VisionState {
+    SEEDING, SEEKING_TAGS, CALIBRATED
+  }
+
+  private VisionState state = VisionState.SEEDING;
 
   public boolean gatePassOverride;
 
   /** Creates a new OdometryUpdatesSubsystem. */
   public OdometryUpdatesSubsystem() {
     gatePassOverride = true;
+    
+    // The chassis yaw should be initialized regardless of quest or LL being operational
+    // TODO: add LED lights and turn it on another color when zero chassis runs
+    RobotContainer.driveSubsystem.zeroChassisYaw();
   }
 
   //Update odometry using Quest

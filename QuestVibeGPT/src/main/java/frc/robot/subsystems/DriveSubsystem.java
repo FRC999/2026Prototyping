@@ -40,6 +40,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
+import frc.robot.OdometryUpdates.OdometryConstants;
 import frc.robot.RobotContainer;
 
 /**
@@ -217,10 +218,6 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         if (Utils.isSimulation()) {
             startSimThread();
         }
-
-        // alex test
-        // reset IMU to 0
-        this.getPigeon2().setYaw(0);
         configureAutoBuilder();
 
         imu = this.getPigeon2();
@@ -497,41 +494,22 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      * 
      * @return The previous yaw
      */
-    public double zeroYaw() {
+    public double zeroChassisYaw() {
         double previousYaw = getYaw();
-        //System.out.println("Old Yaw: " + previousYaw);
-        if (RobotContainer.isAllianceRed
-                && RobotContainer.isReversingControllerAndIMUForRed) {
-            //System.out.println("Yaw 180 " + RobotContainer.isAllianceRed);
 
-            StatusCode status = StatusCode.StatusCodeNotInitialized;
-            for (int i = 0; i < 5; ++i) {
-                status = imu.setYaw(180.0);
-                if (status.isOK())
-                    break;
-            }
-            if (!status.isOK()) {
-                System.out.println("Could not apply configs, error code: " + status.toString());
-            }
-
-            // Reset IMU pose; may need to remove for the competition
-            setCurrentOdometryPoseToSpecificRotation(180);
-
-        } else {
-            System.out.println("Yaw NOT 180 " + RobotContainer.isAllianceRed);
-
-            StatusCode status = StatusCode.StatusCodeNotInitialized;
-            for (int i = 0; i < 5; ++i) {
-                status = imu.setYaw(0);
-                if (status.isOK())
-                    break;
-            }
-            if (!status.isOK()) {
-                System.out.println("Could not apply configs, error code: " + status.toString());
-            }
-
-            setCurrentOdometryPoseToSpecificRotation(0);
+        StatusCode status = StatusCode.StatusCodeNotInitialized;
+        for (int i = 0; i < 5; ++i) {
+            status = imu.setYaw(OdometryConstants.initialYawForAlliance().getDegrees());
+            if (status.isOK())
+                break;
         }
+        if (!status.isOK()) {
+            System.out.println("Could not apply configs, error code: " + status.toString());
+        }
+
+        // Reset IMU pose; may need to remove for the competition
+        setCurrentOdometryPoseToSpecificRotation(OdometryConstants.initialYawForAlliance().getDegrees());
+
         System.out.println("New Yaw: " + imu.getYaw());
         return previousYaw;
     }

@@ -148,7 +148,7 @@ public class RobotContainer {
 
     public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
-      .onTrue(new InstantCommand(() -> driveSubsystem.zeroYaw())
+      .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
         .andThen(new InstantCommand(()-> questNavSubsystem.zeroYaw())));
     new JoystickButton(xboxDriveController, 7)
         .onTrue(new InstantCommand(() -> questNavSubsystem.resetToZeroPose()));

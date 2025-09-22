@@ -16,8 +16,10 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
 import frc.robot.lib.LimelightHelpers;
@@ -45,8 +47,45 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
    * ATs do not become visible at the start of auto, or Quest did not come on, the Yaw currently in the odometry will be used. 
    * 
    * FMS states:
-   * SEEDING - initial location on the field; QUEST is effectively disabled for odometry updates, but will use its current angle
-   * for setting LL Yaw.
+   * INITIALIZE - initial location on the field, against a game element that has knowb Rotation
+   * 
+   * -> SEEKING_TAGS_Q - quest tracking is detected
+   *      Set Quest IMU to known initial Rotation
+   * -> SEEKING_TAGS_NO_Q - quest tracking is not detected for N iterations
+   * 
+   * all cases - set LL IMU to the initial known rotation
+   * 
+   * SEEKING_TAGS_Q - looking for AT
+   * 
+   * -> SEEKING_TAGS_NO_Q - quest suddenly stopped working
+   *    LL IMU is updated by odometry
+   * 
+   * -> CALIBRATED_Q - saw AT, determined my Pose2d
+   *    Calibrate Quest based on the Pose2D gathered from the camera
+   *    set robot odometry based on pose detected
+   *    LL IMU is updated by Quest
+   * 
+   *  all non-transition cases - LL IMU is updated by Quest
+   *
+   * SEEKING_TAGS_NO_Q -  looking for AT
+   *   
+   * -> CALIBRATED_NO_Q - saw AT
+   *    set robot odometry based on pose detected
+   * 
+   * -> SEEKING_TAGS_Q - quest suddently came up
+   *    Set Quest IMU to current robot yaw
+   *    LL IMU is updated by current robot yaw since we set Quest to the same value
+   * 
+   * CALIBRATED_Q - update odometry with both Q and LL
+   * 
+   *   -> CALIBRATED_NO_Q - quest stopped working
+   *     LL IMU is updated by odometry
+   * 
+   * CALIBRATED_NO_Q - update odometry with LL only
+   * 
+   *   -> CALIBRATED_Q - quest suddently came up
+   *     Set Quest IMU to current robot yaw
+   * 
    */
   /* ========= State machine for initial alignment ========= */
   private enum VisionState {
@@ -101,7 +140,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         gatePassOverrideIntermediate = false;
         // System.out.println("TEST");
       } else {
-        System.out.println("g: " + robotPose.toString() + " " + t);
+        if (DebugTelemetrySubsystems.questnav) {
+          SmartDashboard.putString("QuestNav Rejected Pose", robotPose.toString());
+          SmartDashboard.putNumber("QuestNav Rejected TransErr", robotPose.getTranslation().getDistance(poseNow.getTranslation()));
+        }
       }
     }
     gatePassOverride = gatePassOverrideIntermediate;
@@ -130,17 +172,13 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     String cn = llcamera.getCameraName();
     if (cn == null || cn.isBlank()) return;
 
-    LimelightHelpers.PoseEstimate pe = RobotContainer.isAllianceRed
-        ? LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2(cn)
-        : LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cn);
-    if (pe == null) return;
+    LimelightHelpers.PoseEstimate pe = RobotContainer.llAprilTagSubsystem.getPoseEstimateFromLL(cn);
 
-    int tagCount = pe.tagCount;
-    if (tagCount <= 0) return;
+    if (pe == null) return; // Already get NULL if pe.tagCount == 0
 
     double ambiguity = LimelightHelpers.clamp(pe.rawFiducials[0].ambiguity, 0.0, 1.0); // if your Helpers expose it; else set from MT2 metrics
     
-    if ((tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity) 
+    if ((pe.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity) 
         || (pe.rawFiducials[0].distToCamera > LLVisionConstants.kMaxCameraToTargetDistance)) 
       return;
 
@@ -157,14 +195,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
     if (!gatePassOverride && !gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) return;
 
-    if(!RobotContainer.questNavSubsystem.isInitialPoseSet() && tagCount > 0 && ambiguity < LLVisionConstants.kMaxQuestCalibrationAmbiguity ) {
-      calibrateQuestFromLL(robotPose);
-      RobotContainer.driveSubsystem.resetCTREPose(robotPose);
-      gatePassOverride = false;
-      RobotContainer.questNavSubsystem.setInitialPoseSet(true);
-    }
-
-    Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, tagCount, ambiguity);
+    Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, pe.tagCount, ambiguity);
     RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
   }
 
@@ -178,6 +209,19 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     // This method will be called once per scheduler run
     // System.out.println(Timer.getFPGATimestamp());
 
+    if (DebugTelemetrySubsystems.odometry) {
+      // Telemetry for the state machine
+      String stateString = switch(state) {
+        case INITIALIZE -> "INITIALIZE";
+        case SEEKING_TAGS_Q -> "SEEKING_TAGS_Q";
+        case SEEKING_TAGS_NO_Q -> "SEEKING_TAGS_NO_Q";
+        case CALIBRATED_Q -> "CALIBRATED_Q";
+        case CALIBRATED_NO_Q -> "CALIBRATED_NO_Q";
+      };
+      SmartDashboard.putString("OdometryUpdates State", stateString);
+      SmartDashboard.putBoolean("OdometryUpdates GatePassOverride", gatePassOverride);
+    }
+
     switch (state) {
       case INITIALIZE -> {
         // If Quest is On
@@ -185,61 +229,107 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           // Set quest IMU to initial yaw based on alliance
           RobotContainer.questNavSubsystem.resetQuestIMUToAngle(OdometryConstants.initialYawForAlliance().getDegrees());
           state = VisionState.SEEKING_TAGS_Q;
-        } else {
-          if(forceTransitionFromInitialize-- < 0){
+        } else { // No Quest detected at INITIALIZE
+          if(forceTransitionFromInitialize-- < 0){ // Do not give up looking for Quest for some iterations in case it's late to start
             state = VisionState.SEEKING_TAGS_NO_Q;
           }
         }
-        RobotContainer.llAprilTagSubsystem.setLLOrientation(OdometryConstants.initialYawForAlliance().getDegrees());
+        // Set LL IMU to the initial known pose assuming the robot is not moving
+        RobotContainer.llAprilTagSubsystem.setLLOrientation(OdometryConstants.initialYawForAlliance().getDegrees(),0);
 
       }
-      case SEEKING_TAGS_Q -> {
-        if (RobotContainer.questNavSubsystem.isTracking()){
+      case SEEKING_TAGS_Q -> { // Quest was present before
+        if (RobotContainer.questNavSubsystem.isTracking()){ // Quest is still working
           Pose2d rp = RobotContainer.questNavSubsystem.getQuestRobotPose();
-          if(!rp.equals(QuestNavConstants.nullPose)){
-            RobotContainer.llAprilTagSubsystem.setLLOrientation(rp.getRotation().getDegrees());
+          if(!rp.equals(QuestNavConstants.nullPose)){ // But occasionally there are no new poses Quest gives us. If so, do not update LL
+            RobotContainer.llAprilTagSubsystem.setLLOrientation(rp.getRotation().getDegrees(), RobotContainer.driveSubsystem.getTurnRate());
           }
-          
-          state = VisionState.CALIBRATED_Q;
-        } else {
+
+          var bestPoseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
+          if (bestPoseEstimate != null) {
+            // We see AT and have a good pose estimate
+            calibrateQuestFromLL(bestPoseEstimate.pose);
+            RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
+            gatePassOverride = false;
+            RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+            state = VisionState.CALIBRATED_Q; // Now we're calibrated with Quest working
+            return; // No need to do anything else this cycle
+          }
+
+        } else { // Quest is not working anymore, so transition to no-quest state while still seeking the tags
           state = VisionState.SEEKING_TAGS_NO_Q;
-          // No need to update ll IMU because already updated by Quest
+          // Update LL Yaw based on Robot Yaw
+          RobotContainer.llAprilTagSubsystem.setLLOrientation(
+              RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
         }
-        // Look for a good LL pose; when found, anchor EKF and mark CALIBRATED.
-        boolean anchored =
-            tryCalibrateFromLimelight(llLeftName) | tryCalibrateFromLimelight(llRightName);
-        if (anchored) state = VisionState.CALIBRATED;
       }
       case SEEKING_TAGS_NO_Q -> {
-        // Look for a good LL pose; when found, anchor EKF and mark CALIBRATED.
-        boolean anchored =
-            tryCalibrateFromLimelight(llLeftName) | tryCalibrateFromLimelight(llRightName);
-        if (anchored) state = VisionState.CALIBRATED;
+
+        if (RobotContainer.questNavSubsystem.isTracking()){ // Quest came up!!! note that this will result in extra 20ms cycle since Quest Pose is not set yet
+          Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
+          // Set Quest IMU to current robot yaw
+          RobotContainer.questNavSubsystem.resetQuestIMUToAngle(robotPose.getRotation().getDegrees());
+
+          // Update LL Yaw based on Robot Yaw, since we updated the Quest to the same pose
+          RobotContainer.llAprilTagSubsystem.setLLOrientation(
+            robotPose.getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
+
+          state = VisionState.SEEKING_TAGS_Q; // Transition state indicating that we have Quest now. The LL Yaw will be tracked by Quest then.
+
+          return; // No need to do anything else this cycle; even if I see AT, I really want to deal with it if Quest is UP
+        }
+
+        var poseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
+
+        if (poseEstimate != null) { // We see AT and have a good pose estimate, though Quest is still not UP
+          // Set robot odometry to the pose detected
+          RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
+          gatePassOverride = false;
+          state = VisionState.CALIBRATED_NO_Q; // Now we're calibrated without Quest
+          return; // No need to do anything else this cycle
+        }
       }
       case CALIBRATED_Q -> {
-        // Normal fusion once anchored.
-        fuseQuestNavAllUnread(/*allowQuest=*/true);
-        fuseLimelight(llLeftName);
-        fuseLimelight(llRightName);
+        
+        if (RobotContainer.questNavSubsystem.isTracking()) { // Quest is working
+          
+          fuseQuestNavAllUnread(); // Update poses from Quest
+
+        } else { // Quest is not working anymore, so transition to no-quest state while still calibrated
+          state = VisionState.CALIBRATED_NO_Q;
+        }
+
+        // One way or the other, process odometry updates from LL
+        for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+          fuseLLCamera(llcamera);
+        }
+
+
+        // Update LL Yaw based on Robot Yaw
+        RobotContainer.llAprilTagSubsystem.setLLOrientation(
+          RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
+
       }
       case CALIBRATED_NO_Q -> {
-        // Normal fusion once anchored.
-        fuseQuestNavAllUnread(/*allowQuest=*/true);
-        fuseLimelight(llLeftName);
-        fuseLimelight(llRightName);
+        
+        if (RobotContainer.questNavSubsystem.isTracking()) { // Quest magically came up!!!
+          Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
+          // Set Quest IMU to current robot yaw
+          RobotContainer.questNavSubsystem.resetQuestIMUToAngle(robotPose.getRotation().getDegrees());
+
+          // Update LL Yaw based on Robot Yaw, since we updated the Quest to the same pose
+          RobotContainer.llAprilTagSubsystem.setLLOrientation(
+            robotPose.getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
+
+          state = VisionState.SEEKING_TAGS_Q; // Transition state indicating that we have Quest now. The LL Yaw will be tracked by Quest then.
+
+        }
+
+        // Even if Quest came up this cycle, I want to update odometry from LL
+        for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+           fuseLLCamera(llcamera);
+        }
       }
     }
-    // if(RobotContainer.questNavSubsystem.isInitialPoseSet()){ //Only use quest if initial quest pose is set
-    //   //QuestNav: process ALL unread PoseFrames (high trust)
-    //   fuseQuestNavAllUnread();
-    // }
-
-    // if(!RobotContainer.questNavSubsystem.isInitialPoseSet()) {
-
-    //   for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-    //     fuseLLCamera(llcamera);
-    //   }
-      
-    // }
   }
 }

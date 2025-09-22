@@ -14,7 +14,4 @@ public class OdometryConstants {
         == DriverStation.Alliance.Red ? INITIAL_YAW_RED : INITIAL_YAW_BLUE;
   }
 
-  /** Limelight IMU mode for MT2: 0=external only, 1=external seeds LL IMU, 2=internal. */
-  public static final int LL_IMU_MODE = 1;
-
 }

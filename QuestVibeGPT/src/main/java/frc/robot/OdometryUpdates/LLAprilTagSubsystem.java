@@ -11,6 +11,7 @@ import frc.robot.lib.LimelightHelpers.RawFiducial;
 import frc.robot.RobotContainer;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.RobotPoseConstants;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.lib.VisionHelpers;
 
@@ -105,10 +106,73 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return LLCamera.values();
   }
 
-  public void setLLOrientation(double yaw){
+  public void setLLOrientation(double yaw, double yawrate){
     for (LLCamera llcamera : LLCamera.values()) {
-      LimelightHelpers.SetRobotOrientation(llcamera.getCameraName(),  yaw, 0,0,0,0,0);
+      LimelightHelpers.SetRobotOrientation(llcamera.getCameraName(),  yaw, yawrate,0,0,0,0);
     }
+  }
+
+  /**
+   * return PoseEstimate from a given camera or NULL if nothing is visible
+   * @param cn - camera name
+   * @return
+   */
+  public LimelightHelpers.PoseEstimate getPoseEstimateFromLL(String cn) {
+    LimelightHelpers.PoseEstimate pe = RobotContainer.isAllianceRed
+      ? LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2(cn)
+      : LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cn);
+    if(pe == null){ // If I do not see anything
+      return null;
+    }
+    if(pe.tagCount <= 0){ // less than 1 tag
+      return null;
+    }
+
+    return pe;
+  }
+
+  public LimelightHelpers.PoseEstimate getBestPoseEstimateFromAllLL() {
+    LimelightHelpers.PoseEstimate bestPose = null;
+    double bestAmbiguity = 99; // Start with a high number
+
+    for (LLCamera llcamera : LLCamera.values()) {
+      String cn = llcamera.getCameraName();
+      LimelightHelpers.PoseEstimate pe = getPoseEstimateFromLL(cn);
+      if (pe != null) {
+
+        if (DebugTelemetrySubsystems.ll) { // Telemetry for LL AT recognition
+          SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", pe.tagCount);
+          SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", pe.rawFiducials[0].ambiguity);
+        }
+
+        if (pe.rawFiducials[0].ambiguity < bestAmbiguity) {
+          bestAmbiguity = pe.rawFiducials[0].ambiguity;
+          bestPose = pe;
+        }
+      } else { // reset telemetry to show that we do not see AT
+        if (DebugTelemetrySubsystems.ll) {
+          SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", 0);
+          SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", 10);
+        }
+      }
+    }
+
+    // If the best ambiguity is too high, return NULL
+    if (bestAmbiguity > maxBestAmbiguity) {
+      return null;
+    }
+
+    if (DebugTelemetrySubsystems.ll) { // Telemetry for the best Pose selected
+      if (bestPose != null) {
+        SmartDashboard.putNumber("LL Best PoseEst TagCount", bestPose.tagCount);
+        SmartDashboard.putNumber("LL Best PoseEst Ambiguity", bestPose.rawFiducials[0].ambiguity);
+      } else {
+        SmartDashboard.putNumber("LL Best PoseEst TagCount", 0);
+        SmartDashboard.putNumber("LL Best PoseEst Ambiguity", 10);
+      }
+  }
+
+    return bestPose;
   }
 
   @Override
@@ -126,8 +190,6 @@ public class LLAprilTagSubsystem extends SubsystemBase {
 
     for (LLCamera llcamera : LLCamera.values()) {
       String cn = llcamera.getCameraName();
-      
-    
 
       // Update LLs with current YAW, so they can return correct position for Megatag2
       LimelightHelpers.SetRobotOrientation(cn, 

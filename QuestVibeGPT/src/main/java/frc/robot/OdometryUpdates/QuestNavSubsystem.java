@@ -65,6 +65,7 @@ public class QuestNavSubsystem extends SubsystemBase {
     questNav = new QuestNav();
 
     resetToZeroPose();
+
   }
 
   public void resetToZeroPose() {
@@ -184,8 +185,8 @@ public class QuestNavSubsystem extends SubsystemBase {
     // Send the reset operation
     questNav.setPose(questPose);
     if(DebugTelemetrySubsystems.questnav){
-      System.out.println("Quest Odometry Reset To: " + questPose.toString());
-      System.out.println("QRP: " + rP.toString());
+      System.out.println("*** Quest Odometry Reset To: " + questPose.toString());
+      System.out.println("*** QRP: " + rP.toString());
     }
   }
 

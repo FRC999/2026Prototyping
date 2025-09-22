@@ -490,6 +490,15 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     /**
+     * Returns the turn rate of the robot.
+     *
+     * @return The turn rate of the robot, in degrees per second
+     */
+    public double getTurnRate() {
+        return imu.getAngularVelocityZWorld().getValueAsDouble(); // getAngularVelocityZWorld - CCW+
+    }
+
+    /**
      * Zeroes the yaw of the robot
      * 
      * @return The previous yaw
@@ -516,6 +525,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     /**
      * Check if pose with given timestamp is present in buffer
+     * 
      * @param t
      * @return Pose2d at given timestamp
      */

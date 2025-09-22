@@ -187,16 +187,6 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       }
       imuModeSet = true;
     }
-
-    for (LLCamera llcamera : LLCamera.values()) {
-      String cn = llcamera.getCameraName();
-
-      // Update LLs with current YAW, so they can return correct position for Megatag2
-      LimelightHelpers.SetRobotOrientation(cn, 
-        swerveDriveState.Pose.getRotation().getDegrees(), 
-        Math.toDegrees(chassisSpeeds.omegaRadiansPerSecond), 
-        0, 0, 0, 0);
-    }
   }
 }
 

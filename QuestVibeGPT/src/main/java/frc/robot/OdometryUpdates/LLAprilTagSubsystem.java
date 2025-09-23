@@ -14,6 +14,7 @@ import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.Robot
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.lib.VisionHelpers;
+import java.util.function.Supplier;
 
 import java.util.Map;
 
@@ -175,6 +176,27 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return bestPose;
   }
 
+  /**
+   * Ordering guard: set orientation, then run the pose query (returns result).
+   * 
+   * This ensures that setLLOrientation always runs BEFORE the pose query from LL
+   */
+  public <T> T withOrientation(double yawDeg, double yawRateDegPerSec, Supplier<T> poseQuery) {
+    setLLOrientation(yawDeg, yawRateDegPerSec);
+    return poseQuery.get();
+  }
+
+  /** Ordering guard: set orientation, then run the pose operation (void). */
+  public void withOrientation(double yawDeg, double yawRateDegPerSec, Runnable r) {
+    setLLOrientation(yawDeg, yawRateDegPerSec);
+    r.run();
+  }
+
+  /** Raw fiducials for dashboards/debug (kept name/signature). */
+  public RawFiducial[] getRawFiducials(String cameraName) {
+    return LimelightHelpers.getRawFiducials(cameraName);
+  }
+
   @Override
   public void periodic() {
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
@@ -183,7 +205,9 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     // One-time IMU mode set: 1 = mirror external yaw into LL IMU (keeps MT2/IMU consistent).
     if (!imuModeSet) {
       for (LLCamera llcamera : LLCamera.values()) {
-        LimelightHelpers.SetIMUMode(llcamera.getCameraName(),  LLAprilTagConstants.LLVisionConstants.LL_IMU_MODE);
+        LimelightHelpers.SetIMUMode(
+          llcamera.getCameraName(),
+          LLAprilTagConstants.LLVisionConstants.LL_IMU_MODE);
       }
       imuModeSet = true;
     }

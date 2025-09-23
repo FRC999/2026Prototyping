@@ -10,37 +10,43 @@ import edu.wpi.first.math.util.Units;
 public class LLAprilTagConstants {
     public static final class LLVisionConstants {
 
-    public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout - changes year-to-year
-	
-	/** Limelight IMU mode for MT2: 0=external only, 1=external seeds LL IMU, 2=internal. */
-	public static final int LL_IMU_MODE = 1;
-		
-	public static enum LLCamera {
+    	public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout -
+																									// changes
+																									// year-to-year
+
+		/**
+		 * Limelight IMU mode for MT2: 0=external only, 1=external seeds LL IMU,
+		 * 2=internal.
+		 */
+		public static final int LL_IMU_MODE = 1;
+
+		public static enum LLCamera {
 
 			LLLEFT(
-				"limelight-fl"
-			),
+					"limelight-fl"),
 
 			LLRIGHT(
-				"limelight-fr"
-			)
+					"limelight-fr")
 			// ,
 			// LLBACK(
-			// 	"limelight-back"
+			// "limelight-back"
 			// )
 			;
+
 			private String cameraname;
+
 			LLCamera(String cn) {
 				this.cameraname = cn;
 			}
+
 			public String getCameraName() {
 				return cameraname;
 			}
 		}
 
-        public static final double kMaxQuestCalibrationAmbiguity = 0.30;
-        public static final double kMaxSingleTagAmbiguity = 0.20; // Maximum ambiguity when seeing a single AprilTag
-        public static final double kMaxCameraToTargetDistance = 3.0; //Maximum distance from camera to AprilTag
+		public static final double kMaxQuestCalibrationAmbiguity = 0.30;
+		public static final double kMaxSingleTagAmbiguity = 0.20; // Maximum ambiguity when seeing a single AprilTag
+		public static final double kMaxCameraToTargetDistance = 3.0; // Maximum distance from camera to AprilTag
 	}
 
     public static final class VisionHelperConstants {

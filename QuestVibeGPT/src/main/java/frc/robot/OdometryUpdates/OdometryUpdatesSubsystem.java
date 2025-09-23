@@ -149,6 +149,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     gatePassOverride = gatePassOverrideIntermediate;
   }
 
+   /** Simple “good fix” filter you can tune or replace with streak/debounce logic. */
+   private boolean goodFix(LimelightHelpers.PoseEstimate pe) {
+    if (pe == null) return false;
+    if (pe.tagCount < 1) return false;
+    if (pe.tagCount == 1 && pe.rawFiducials[0].ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity) return false;
+    return true;
+  }
+
   /** Innovation gating with latency compensation via buffered prediction. */
   private boolean gateMeasurement(Pose2d robotPose, double timestamp, boolean strict, double speedNow, Pose2d poseNow) { 
     if (gatePassOverride) {
@@ -203,6 +211,31 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     RobotContainer.questNavSubsystem.resetQuestOdometry(robotPose);
   }
   
+   // ---------------- yaw selection per current state ----------------
+  /** Return {yawDeg, yawRateDegPerSec} to feed MegaTag2 now, given the current FSM state. */
+  private double[] computeYawForLL() {
+    final double yawRateDeg = RobotContainer.driveSubsystem.getTurnRate();
+    switch (state) {
+      case INITIALIZE -> {
+        return new double[] { OdometryConstants.initialYawForAlliance().getDegrees(), 0.0 };
+      }
+      case SEEKING_TAGS_Q, CALIBRATED_Q -> {
+        Pose2d questPose = RobotContainer.questNavSubsystem.getQuestRobotPose();
+        double yaw = (questPose != null && !questPose.equals(QuestNavConstants.nullPose))
+            ? questPose.getRotation().getDegrees()
+            : RobotContainer.driveSubsystem.getPose().getRotation().getDegrees();
+        return new double[] { yaw, yawRateDeg };
+      }
+      case SEEKING_TAGS_NO_Q, CALIBRATED_NO_Q -> {
+        double yaw = RobotContainer.driveSubsystem.getPose().getRotation().getDegrees();
+        return new double[] { yaw, yawRateDeg };
+      }
+      default -> {
+        double yaw = RobotContainer.driveSubsystem.getPose().getRotation().getDegrees();
+        return new double[] { yaw, yawRateDeg };
+      }
+    }
+  }
 
   @Override
   public void periodic() {
@@ -211,14 +244,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
     if (DebugTelemetrySubsystems.odometry) {
       // Telemetry for the state machine
-      String stateString = switch(state) {
-        case INITIALIZE -> "INITIALIZE";
-        case SEEKING_TAGS_Q -> "SEEKING_TAGS_Q";
-        case SEEKING_TAGS_NO_Q -> "SEEKING_TAGS_NO_Q";
-        case CALIBRATED_Q -> "CALIBRATED_Q";
-        case CALIBRATED_NO_Q -> "CALIBRATED_NO_Q";
-      };
-      SmartDashboard.putString("OdometryUpdates State", stateString);
+
+      SmartDashboard.putString("OdometryUpdates State", state.name());
       SmartDashboard.putBoolean("OdometryUpdates GatePassOverride", gatePassOverride);
     }
 
@@ -239,29 +266,27 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
       }
       case SEEKING_TAGS_Q -> { // Quest was present before
-        if (RobotContainer.questNavSubsystem.isTracking()){ // Quest is still working
-          Pose2d rp = RobotContainer.questNavSubsystem.getQuestRobotPose();
-          if(!rp.equals(QuestNavConstants.nullPose)){ // But occasionally there are no new poses Quest gives us. If so, do not update LL
-            RobotContainer.llAprilTagSubsystem.setLLOrientation(rp.getRotation().getDegrees(), RobotContainer.driveSubsystem.getTurnRate());
-          }
 
-          var bestPoseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
-          if (bestPoseEstimate != null) {
-            // We see AT and have a good pose estimate
-            calibrateQuestFromLL(bestPoseEstimate.pose);
-            RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
-            gatePassOverride = false;
-            RobotContainer.questNavSubsystem.setInitialPoseSet(true);
-            state = VisionState.CALIBRATED_Q; // Now we're calibrated with Quest working
-            return; // No need to do anything else this cycle
-          }
-
-        } else { // Quest is not working anymore, so transition to no-quest state while still seeking the tags
+        if (!RobotContainer.questNavSubsystem.isTracking()) { // Quest suddenly stopped working
           state = VisionState.SEEKING_TAGS_NO_Q;
-          // Update LL Yaw based on Robot Yaw
-          RobotContainer.llAprilTagSubsystem.setLLOrientation(
-              RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
+          break;
         }
+
+        // Use state-appropriate yaw, set LL orientation, then read MT2
+        double[] y = computeYawForLL();
+        var bestPoseEstimate = RobotContainer.llAprilTagSubsystem.withOrientation(
+            y[0], y[1],
+            () -> RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL());
+
+        if (bestPoseEstimate != null && goodFix(bestPoseEstimate)) {
+          calibrateQuestFromLL(bestPoseEstimate.pose);
+          RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
+          gatePassOverride = false;
+          RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+          state = VisionState.CALIBRATED_Q;
+          return;
+        }
+
       }
       case SEEKING_TAGS_NO_Q -> {
 

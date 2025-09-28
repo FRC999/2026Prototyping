@@ -173,36 +173,36 @@ public final class Constants {
           3, 
           4, 
           31, 
-          -0.282470578125, 
+          0.022582890625, 
           false, 
-          true, 
+          false, 
           false);
 
         public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord(
           1, 
           2, 
           30, 
-          0.029541015625, 
+          -0.3797604921875, 
           true, 
-          true, 
+          false, 
           false);
 
         public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord(
           7, 
           8, 
           33, 
-          0.317138875, 
+          0.421386796875, 
           false, 
-          true, 
+          false, 
           false);
 
         public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord(
           5, 
           6, 
           32, 
-          0.044677734375, 
+          0.088256890625, 
           true, 
-          true, 
+          false, 
           false);
 
     }

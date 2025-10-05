@@ -299,35 +299,33 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           state = VisionState.CALIBRATED_NO_Q;
         }
 
+        // Update LL Yaw based on Robot Yaw
+        RobotContainer.llAprilTagSubsystem.setLLOrientation(
+          RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
+
         // One way or the other, process odometry updates from LL
         for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
           fuseLLCamera(llcamera);
         }
 
-
-        // Update LL Yaw based on Robot Yaw
-        RobotContainer.llAprilTagSubsystem.setLLOrientation(
-          RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
-
       }
       case CALIBRATED_NO_Q -> {
-        
+        Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
         if (RobotContainer.questNavSubsystem.isTracking()) { // Quest magically came up!!!
-          Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
           // Set Quest IMU to current robot yaw
           RobotContainer.questNavSubsystem.resetQuestIMUToAngle(robotPose.getRotation().getDegrees());
 
-          // Update LL Yaw based on Robot Yaw, since we updated the Quest to the same pose
-          RobotContainer.llAprilTagSubsystem.setLLOrientation(
-            robotPose.getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
-
-          state = VisionState.SEEKING_TAGS_Q; // Transition state indicating that we have Quest now. The LL Yaw will be tracked by Quest then.
-
+          state = VisionState.SEEKING_TAGS_Q; // Transition state indicating that we have Quest now. 
+                                              //  The LL Yaw will be tracked by Quest then.
         }
 
+        // Update LL Yaw based on Robot Yaw
+        RobotContainer.llAprilTagSubsystem.setLLOrientation(
+            robotPose.getRotation().getDegrees(), RobotContainer.driveSubsystem.getTurnRate());
+
         // Even if Quest came up this cycle, I want to update odometry from LL
-        for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-           fuseLLCamera(llcamera);
+        for (LLCamera llcamera : RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+          fuseLLCamera(llcamera);
         }
       }
     }

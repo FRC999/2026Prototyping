@@ -25,6 +25,7 @@ import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
 import frc.robot.lib.LimelightHelpers;
 import frc.robot.lib.QuestHelpers;
+import frc.robot.lib.VisionHelpers;
 import gg.questnav.questnav.PoseFrame;
 
 /**
@@ -141,8 +142,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       if (gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) {
         Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
         RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
-        System.out.println("T");
-        System.out.println(Timer.getFPGATimestamp());
+        //System.out.println("T");
+        //System.out.println(Timer.getFPGATimestamp());
         gatePassOverrideIntermediate = false;
         // System.out.println("TEST");
       } else {
@@ -180,13 +181,19 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
     LimelightHelpers.PoseEstimate pe = RobotContainer.llAprilTagSubsystem.getPoseEstimateFromLL(cn);
 
-    if (pe == null) return; // Already get NULL if pe.tagCount == 0
+    if (pe == null) {
+      VisionHelpers.clearLLTelemetry(cn);
+      return;
+    } // Already get NULL if pe.tagCount == 0
 
     double ambiguity = LimelightHelpers.clamp(pe.rawFiducials[0].ambiguity, 0.0, 1.0); // if your Helpers expose it; else set from MT2 metrics
     
     if ((pe.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity) 
         || (pe.rawFiducials[0].distToCamera > LLVisionConstants.kMaxCameraToTargetDistance)) 
-      return;
+      {
+        VisionHelpers.clearLLTelemetry(cn);
+        return;
+      }
 
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
     ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
@@ -199,10 +206,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       : Timer.getFPGATimestamp() - pe.latency;
 
 
-    if (!gatePassOverride && !gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) return;
+    if (!gatePassOverride && !gateMeasurement(robotPose, timestampLL, /*strict*/ true, speedNow, poseNow)) {
+      VisionHelpers.clearLLTelemetry(cn);
+      return;
+    }
 
     Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, pe.tagCount, ambiguity);
     RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+    VisionHelpers.updateLLTelemetry(pe, cn);
   }
 
   private void calibrateQuestFromLL(Pose2d robotPose) {
@@ -220,10 +231,11 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
     // SmartDashboard: concise and stable paths
     if(Constants.DebugTelemetrySubsystems.odometry) {
-      SmartDashboard.putString("Odometry/State", state.name());
-      SmartDashboard.putString("Odometry/LastTransition", lastTransition);
-      SmartDashboard.putNumber("Odometry/TransitionSeq", transitionSeq);
-      SmartDashboard.putNumber("Odometry/LastTransitionTimeSec", lastTransitionTime);
+      System.out.println("*******Inside transition to: Odometry is true");
+      SmartDashboard.putString("Odometry-State", state.name());
+      SmartDashboard.putString("Odometry-LastTransition", lastTransition);
+      SmartDashboard.putNumber("Odometry-TransitionSeq", transitionSeq);
+      SmartDashboard.putNumber("Odometry-LastTransitionTimeSec", lastTransitionTime);
     }
   }
 

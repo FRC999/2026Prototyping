@@ -13,8 +13,12 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.RobotPoseConstants;
+import frc.robot.lib.LimelightHelpers.PoseEstimate;
+import frc.robot.OdometryUpdates.LLAprilTagConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import edu.wpi.first.math.geometry.Pose3d;
 
@@ -71,6 +75,7 @@ public class VisionHelpers {
     
 
     public static Pose3d getTagPose(int tagId) {
+        
         if (LLAprilTagSubsystem.fieldLayout != null) {
             Optional<Pose3d> tagPose = LLAprilTagSubsystem.fieldLayout.getTagPose(tagId);
             if (tagPose.isPresent()) {
@@ -332,6 +337,29 @@ public class VisionHelpers {
     public static double distanceFromPoseLineX(Pose2d tagPose, Pose2d robotPose) {
         Pose2d rotatedRobotPose = robotPose.rotateAround(tagPose.getTranslation(), tagPose.getRotation().unaryMinus());
         return tagPose.getX()-rotatedRobotPose.getX();
+    }
+
+    public static void updateLLTelemetry(PoseEstimate pe, String cn) {
+        try { // Errors in tag determination can kill robot
+          if (DebugTelemetrySubsystems.ll) { // Telemetry for LL AT recognition
+            SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", pe.tagCount);
+            SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", pe.rawFiducials[0].ambiguity);
+            SmartDashboard.putNumber("LL " + cn + " Tag Number", pe.rawFiducials[0].id);
+            SmartDashboard.putString("LL " + cn + " Tag Pose",
+                VisionHelpers.getTagPose(pe.rawFiducials[0].id).toString());
+          }
+        } catch (Exception e) {
+
+        }
+    }
+
+    public static void clearLLTelemetry(String cn) {
+        if (DebugTelemetrySubsystems.ll) {
+            SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", 0);
+            SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", 10);
+            SmartDashboard.putNumber("LL " + cn + " Tag Number", 0);
+            SmartDashboard.putString("LL " + cn + " Tag Pose", "");
+        }
     }
 
 

@@ -40,6 +40,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.ll){
       return;
     }
+    fieldLayout = AprilTagFieldLayout.loadField(LLAprilTagConstants.LLVisionConstants.FIELD_LAYOUT);
 
   }
 
@@ -138,22 +139,19 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     for (LLCamera llcamera : LLCamera.values()) {
       String cn = llcamera.getCameraName();
       LimelightHelpers.PoseEstimate pe = getPoseEstimateFromLL(cn);
+
       if (pe != null) {
 
-        if (DebugTelemetrySubsystems.ll) { // Telemetry for LL AT recognition
-          SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", pe.tagCount);
-          SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", pe.rawFiducials[0].ambiguity);
-        }
+        VisionHelpers.updateLLTelemetry(pe, cn);
 
         if (pe.rawFiducials[0].ambiguity < bestAmbiguity) {
           bestAmbiguity = pe.rawFiducials[0].ambiguity;
           bestPose = pe;
         }
       } else { // reset telemetry to show that we do not see AT
-        if (DebugTelemetrySubsystems.ll) {
-          SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", 0);
-          SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", 10);
-        }
+       
+        VisionHelpers.clearLLTelemetry(cn);
+        
       }
     }
 

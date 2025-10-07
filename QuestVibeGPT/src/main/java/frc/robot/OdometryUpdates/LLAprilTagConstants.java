@@ -30,12 +30,21 @@ public class LLAprilTagConstants {
 			// )
 			;
 			private String cameraname;
+			private boolean prevCleared; // Set to true if nothing was seen last time
+			public boolean isPrevCleared() {
+				return prevCleared;
+			}
+			public void setPrevCleared(boolean prevCleared) {
+				this.prevCleared = prevCleared;
+			}
 			LLCamera(String cn) {
 				this.cameraname = cn;
+				this.prevCleared = false;
 			}
 			public String getCameraName() {
 				return cameraname;
 			}
+			
 		}
 
         public static final double kMaxQuestCalibrationAmbiguity = 0.30;

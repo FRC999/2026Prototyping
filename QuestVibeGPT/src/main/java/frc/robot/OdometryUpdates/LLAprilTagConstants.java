@@ -23,6 +23,9 @@ public class LLAprilTagConstants {
 
 			LLRIGHT(
 				"limelight-fr"
+			),
+			LLLEFTUP (
+				"limelight-l"
 			)
 			// ,
 			// LLBACK(

@@ -103,6 +103,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private String lastTransition = "START";
   private double lastTransitionTime = 0.0;
   private int transitionSeq = 0;
+  private Timer llTimer = new Timer();
 
   /** Creates a new OdometryUpdatesSubsystem. */
   public OdometryUpdatesSubsystem() {
@@ -229,6 +230,17 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     lastTransitionTime = Timer.getFPGATimestamp();
     lastTransition = prevState.name() + " -> " + state.name() + (reason != null && !reason.isBlank() ? " | " + reason : "");
 
+    switch (prevState){
+      case SEEKING_TAGS_Q:
+        llTimer.stop();
+    }
+
+    switch (newState){
+      case SEEKING_TAGS_Q:
+        llTimer.start();
+        System.out.println("******Starting timer");
+    }
+
     // SmartDashboard: concise and stable paths
     if(Constants.DebugTelemetrySubsystems.odometry) {
       System.out.println("*******Inside transition to: Odometry is true");
@@ -304,6 +316,20 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           // Update LL Yaw based on Robot Yaw
           RobotContainer.llAprilTagSubsystem.setLLOrientation(
               RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
+        }
+
+        if(llTimer.hasElapsed(QuestNavConstants.llWait)){
+          System.out.println("******* time elapsed");
+          calibrateQuestFromLL(QuestNavConstants.startingPositionNoLL);
+          RobotContainer.driveSubsystem.resetCTREPose(QuestNavConstants.startingPositionNoLL);
+
+          gatePassOverride = false;
+          RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+
+          transitionTo(VisionState.CALIBRATED_Q, "Bad LL fix; anchored field pose"); // SEEKING_TAGS_Q -> CALIBRATED_Q
+
+        } else {
+          SmartDashboard.putString("CurrentTimer", llTimer.toString());
         }
       }
       case SEEKING_TAGS_NO_Q -> {

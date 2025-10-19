@@ -169,6 +169,9 @@ public final class Constants {
       public static record SwerveModuleConstantsRecord(int driveMotorID, int angleMotorID, int cancoderID, double angleOffset,
         boolean driveMotorInverted, boolean angleMotorInverted, boolean cancoderInverted) {}
 
+
+        // 2024 SWERVE CONSTANTS
+        /*
         public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord(
           3, 
           4, 
@@ -203,7 +206,52 @@ public final class Constants {
           0.044677734375, 
           true, 
           true, 
-          false);
+          false); */
+
+          public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
+						3, // driveMotorID
+						4, // angleMotorID
+						31, // CanCoder Id
+						// -0.296142578125, // angleOffset of cancoder to mark zero-position
+						0.022582890625, // angleOffset of cancoder to mark zero-position
+						false, // Inversion for drive motor
+						false, // Inversion for angle motor
+						false // inversion for CANcoder
+				);
+       
+        public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
+						1, // driveMotorID
+						2, // angleMotorID
+						30, // CanCoder Id
+						// 0.041015625, // angleOffset of cancoder to mark zero-position
+						-0.3797604921875, // angleOffset of cancoder to mark zero-position
+						true, // Inversion for drive motor
+						false, // Inversion for angle motor
+						false // inversion for CANcoder
+				);
+
+        public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
+						7, // driveMotorID
+						8, // angleMotorID
+						33, // CanCoder Id
+						// -0.296142578125, // angleOffset of cancoder to mark zero-position
+						0.421386796875, // angleOffset of cancoder to mark zero-position
+						false, // Inversion for drive motor
+						false, // Inversion for angle motor
+						false // inversion for CANcoder
+				);
+        public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
+						5, // driveMotorID
+						6, // angleMotorID
+						32, // CanCoder Id
+						// 0.326171875, // angleOffset of cancoder to mark zero-position
+						//0.0576171875, // angleOffset of cancoder to mark zero-position
+						0.088256890625, // angleOffset of cancoder to mark zero-position
+						true, // Inversion for drive motor
+						false, // Inversion for angle motor
+						false // inversion for CANcoder
+				);
+
 
     }
 

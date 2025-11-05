@@ -45,6 +45,7 @@ import frc.robot.commands.StopRobot;
 import frc.robot.commands.ThreeMeterForwardPPCommand;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.SmartDashboardSubsystem;
 
 
 public class RobotContainer {
@@ -64,6 +65,7 @@ public class RobotContainer {
     public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
     public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
     public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
+    public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
 
     public RobotContainer() {

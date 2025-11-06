@@ -4,26 +4,23 @@
 
 package frc.robot.OdometryUpdates;
 
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.lib.LimelightHelpers;
-import frc.robot.lib.LimelightHelpers.PoseEstimate;
-import frc.robot.lib.LimelightHelpers.RawFiducial;
-import frc.robot.RobotContainer;
-import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
-import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.RobotPoseConstants;
-import frc.robot.Constants.DebugTelemetrySubsystems;
-import frc.robot.Constants.EnabledSubsystems;
-import frc.robot.lib.VisionHelpers;
-
 import java.util.Map;
 
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.DebugTelemetrySubsystems;
+import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.RobotContainer;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
+import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.RobotPoseConstants;
+import frc.robot.lib.LimelightHelpers;
+import frc.robot.lib.LimelightHelpers.RawFiducial;
+import frc.robot.lib.VisionHelpers;
 
 public class LLAprilTagSubsystem extends SubsystemBase {
   public static AprilTagFieldLayout fieldLayout;
@@ -62,10 +59,9 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   }
 
   public boolean isAprilTagVisibleAny() {
-    String[] cns = {"limelight-fl", "limelight-fr", "limelight-l"};
     int counter = 0;
-    for(int i = 0; i<=2; i++){
-      if(isAprilTagVisible(cns[i])){
+    for(LLCamera llcamera : LLCamera.values()){
+      if(isAprilTagVisible(llcamera.getCameraName())){
         counter++;
       }
     }

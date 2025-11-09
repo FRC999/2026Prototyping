@@ -114,6 +114,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     RobotContainer.driveSubsystem.zeroChassisYaw();
   }
 
+  public boolean isCalibrated() {
+    return (state == VisionState.CALIBRATED_NO_Q || state == VisionState.CALIBRATED_Q);
+  }
+
   //Update odometry using Quest
   private void fuseQuestNavAllUnread() {
     // System.out.println(Timer.getFPGATimestamp());

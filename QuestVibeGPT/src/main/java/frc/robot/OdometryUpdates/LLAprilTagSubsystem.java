@@ -129,6 +129,10 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return pe;
   }
 
+  public Pose2d getBestPoseFromAllLL(){
+    return getBestPoseEstimateFromAllLL().pose;
+  }
+
   public LimelightHelpers.PoseEstimate getBestPoseEstimateFromAllLL() {
     LimelightHelpers.PoseEstimate bestPose = null;
     double bestAmbiguity = 99; // Start with a high number

@@ -6,6 +6,7 @@ package frc.robot;
 
 import frc.robot.Constants;
 import frc.robot.Constants.PathPlannerConstants;
+import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.OIContants.ControllerDevice;
@@ -15,19 +16,26 @@ import frc.robot.OdometryUpdates.QuestNavSubsystem;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.List;
+
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.path.GoalEndState;
+import com.pathplanner.lib.path.IdealStartingState;
 import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.path.Waypoint;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -42,6 +50,7 @@ import frc.robot.commands.QuestNavTrajectoryTest;
 import frc.robot.commands.QuestOffsetCharacterization;
 import frc.robot.commands.ReturnTestPPCommand;
 import frc.robot.commands.StopRobot;
+import frc.robot.commands.TeleopPanToAprilTag;
 import frc.robot.commands.ThreeMeterForwardPPCommand;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
@@ -139,6 +148,14 @@ public class RobotContainer {
 
       new JoystickButton(xboxDriveController, 4)
         .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
+        .onFalse(new StopRobot());
+
+      new JoystickButton(xboxDriveController, 6)
+        .onTrue(new ConditionalCommand(
+            new TeleopPanToAprilTag(false),
+            new TeleopPanToAprilTag(true),
+            () -> new OdometryUpdatesSubsystem().isCalibrated()
+        ))
         .onFalse(new StopRobot());
 
       new JoystickButton(xboxDriveController, 5)
@@ -241,4 +258,28 @@ public class RobotContainer {
     public Command getAutonomousCommand() {
         return Commands.print("No autonomous command configured");
     }
+
+    public static Command runTrajectory2PosesSlow(Pose2d startPose, Pose2d endPose,
+      boolean shouldResetOdometryToStartingPose) {
+    try {
+      List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
+
+      PathPlannerPath path = new PathPlannerPath(
+          waypoints,
+          AutoConstants.testPathCconstraints,
+          new IdealStartingState(0, startPose.getRotation()),
+          new GoalEndState(0, endPose.getRotation()));
+      path.preventFlipping = true;
+      driveSubsystem.setOdometryPoseToSpecificPose(startPose); // reset odometry, as PP may not do so
+      if (!shouldResetOdometryToStartingPose) {
+        return AutoBuilder.followPath(path);
+      } else { // reset odometry the right way
+        System.out.println("== Driving from "+startPose+" to "+endPose);
+        return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+      }
+    } catch (Exception e) {
+      DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
+      return Commands.none();
+    }
+  }
 }

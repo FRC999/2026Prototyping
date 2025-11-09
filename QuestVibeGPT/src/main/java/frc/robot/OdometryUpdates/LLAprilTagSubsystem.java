@@ -58,22 +58,6 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return LimelightHelpers.getTV(cameraName); 
   }
 
-  public boolean isAprilTagVisibleAny() {
-    int counter = 0;
-    for(LLCamera llcamera : LLCamera.values()){
-      if(isAprilTagVisible(llcamera.getCameraName())){
-        counter++;
-      }
-    }
-    if(counter>=1){
-      return true;
-    }
-    return false;
-
-  }
-
-
-
   public boolean isRedReefTagID(int tag) {
     return ( tag>=6 && tag <=11);
   }

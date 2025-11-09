@@ -23,7 +23,6 @@ import frc.robot.RobotContainer;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
-import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.LimelightHelpers;
 import frc.robot.lib.QuestHelpers;
 import frc.robot.lib.VisionHelpers;
@@ -246,7 +245,6 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if(Constants.DebugTelemetrySubsystems.odometry) {
       System.out.println("*******Inside transition to: Odometry is true");
       SmartDashboard.putString("Odometry-State", state.name());
-      SmartDashboard.putString("Odometry-State-Color", ElasticHelpers.questStatesColors(state.name()));
       SmartDashboard.putString("Odometry-LastTransition", lastTransition);
       SmartDashboard.putNumber("Odometry-TransitionSeq", transitionSeq);
       SmartDashboard.putNumber("Odometry-LastTransitionTimeSec", lastTransitionTime);

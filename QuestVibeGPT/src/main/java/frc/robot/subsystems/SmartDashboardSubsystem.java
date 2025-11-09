@@ -22,14 +22,16 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     SmartDashboard.putString("LL4-Visible", ElasticHelpers.LLAnyVisibleColors(RobotContainer.llAprilTagSubsystem.isAprilTagVisibleAny()));
   }
 
-  public void miscellaneousTelemetry() {
+  public void SystemsCheckTelemetry() {
     SmartDashboard.putNumber("Battery-Voltage", RobotController.getBatteryVoltage());
-    
+    SmartDashboard.putString("Alliance-Side", ElasticHelpers.getAllianceSide());
+    SmartDashboard.putString("Auto-Selected", ElasticHelpers.getAutoSelectedColor());
   }
+
   @Override
   public void periodic() {
     updateLLTelemetry();
-    miscellaneousTelemetry();
+    SystemsCheckTelemetry();
     // This method will be called once per scheduler run
   }
 }

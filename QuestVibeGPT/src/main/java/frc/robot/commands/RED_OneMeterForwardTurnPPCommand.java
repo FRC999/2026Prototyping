@@ -11,9 +11,9 @@ import frc.robot.RobotContainer;
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
 // https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
-public class OneMeterForwardTurnPPCommand extends SequentialCommandGroup {
+public class RED_OneMeterForwardTurnPPCommand extends SequentialCommandGroup {
   /** Creates a new OneMeterForwardTurnPPCommand. */
-  public OneMeterForwardTurnPPCommand() {
+  public RED_OneMeterForwardTurnPPCommand() {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(

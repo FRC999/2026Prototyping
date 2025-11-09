@@ -25,6 +25,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -36,8 +37,8 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.commands.DriveManuallyCommand;
-import frc.robot.commands.OneMeterForwardPPCommand;
-import frc.robot.commands.OneMeterForwardTurnPPCommand;
+import frc.robot.commands.BLUE_OneMeterForwardPPCommand;
+import frc.robot.commands.RED_OneMeterForwardTurnPPCommand;
 import frc.robot.commands.QuestNavTrajectoryTest;
 import frc.robot.commands.QuestOffsetCharacterization;
 import frc.robot.commands.ReturnTestPPCommand;
@@ -67,6 +68,8 @@ public class RobotContainer {
     public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
     public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
+    public static SendableChooser<Command> autoChooser = new SendableChooser<>();
+
 
     public RobotContainer() {
         configureBindings();
@@ -79,7 +82,18 @@ public class RobotContainer {
           () -> getDriverYAxis(),
           () -> getDriverOmegaAxis()));
         FollowPathCommand.warmupCommand().schedule();
+
+      AutonomousConfigure();
     }
+
+    private void AutonomousConfigure () {
+      //port autonomous routines as commands
+    //sets the default option of the SendableChooser to the simplest autonomous command. (from touching the hub, drive until outside the tarmac zone) 
+  
+    autoChooser.addOption("One Meter Forward", new BLUE_OneMeterForwardPPCommand());
+    autoChooser.addOption("1M->Turn", new RED_OneMeterForwardTurnPPCommand());
+    SmartDashboard.putData(autoChooser);
+  } 
 
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
@@ -130,7 +144,7 @@ public class RobotContainer {
 
     private void testTrajectory() {
       new JoystickButton(xboxDriveController, 1)
-        .onTrue(new OneMeterForwardPPCommand());
+        .onTrue(new BLUE_OneMeterForwardPPCommand());
         // new JoystickButton(xboxDriveController, 2)
         // .onTrue(new ThreeMeterForwardPPCommand());
       new JoystickButton(xboxDriveController, 2)
@@ -241,6 +255,6 @@ public class RobotContainer {
 
 
     public Command getAutonomousCommand() {
-        return Commands.print("No autonomous command configured");
+        return autoChooser.getSelected();
     }
 }

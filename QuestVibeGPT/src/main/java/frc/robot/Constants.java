@@ -100,8 +100,8 @@ public final class Constants {
       public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
-      //public static final CANBus kCANBus = new CANBus("canivore1", "./logs/example.hoot"); // 2025
-      public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2024 no canivore
+      public static final CANBus kCANBus = new CANBus("canivore1", "./logs/example.hoot"); // 2025
+      //public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2024 no canivore
 
       public static final Pigeon2Configuration pigeonConfigs = null;
       public static final Slot0Configs steerGains = new Slot0Configs()
@@ -177,7 +177,7 @@ public final class Constants {
 
         // 2024 SWERVE CONSTANTS
         
-        public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord(
+        /*public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord(
           1, 
           2, 
           20, 
@@ -212,10 +212,10 @@ public final class Constants {
           true, 
           true, 
           false); 
-
+        */
 
           // 2025 Constants
-          /* 
+          
           public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
 						3, // driveMotorID
 						4, // angleMotorID
@@ -258,7 +258,7 @@ public final class Constants {
 						true, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
-				); */
+				);
 
 
     }

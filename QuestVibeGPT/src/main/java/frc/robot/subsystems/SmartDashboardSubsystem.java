@@ -5,6 +5,7 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.hal.simulation.RoboRioDataJNI;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.net.PortForwarder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotController;
@@ -26,12 +27,22 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Battery-Voltage", RobotController.getBatteryVoltage());
     SmartDashboard.putString("Alliance-Side", ElasticHelpers.getAllianceSide());
     SmartDashboard.putString("Auto-Selected", ElasticHelpers.getAutoSelectedColor());
+    SmartDashboard.putNumber("Match Time", DriverStation.getMatchTime());
+  }
+
+  public void TeleopTelemetry() {
+    SmartDashboard.putData("Field", ElasticHelpers.getField());
+    SmartDashboard.putString("Lock in to End Game", ElasticHelpers.shouldEndGameColor());
   }
 
   @Override
   public void periodic() {
+    // This method will be called once per scheduler run
+    Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
+    ElasticHelpers.updateRobotPose(robotPose);
+
     updateLLTelemetry();
     SystemsCheckTelemetry();
-    // This method will be called once per scheduler run
+    TeleopTelemetry();
   }
 }

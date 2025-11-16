@@ -132,8 +132,8 @@ public final class Constants {
       public static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
       public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFX_Integrated;
       
-      //public static final int kPigeonId = 40; // 2025
-      public static final int kPigeonId = 15; // 2024
+      public static final int kPigeonId = 40; // 2025
+      //public static final int kPigeonId = 15; // 2024
       
       public static final Current kSlipCurrent = Amps.of(120.0);
       public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.21);

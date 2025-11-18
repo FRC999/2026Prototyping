@@ -1,15 +1,25 @@
 package frc.robot.lib;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import frc.robot.RobotContainer;
+import com.pathplanner.lib.path.PathPlannerPath;
+
 
 public class ElasticHelpers {
 
-    private static final Field2d field = new Field2d();
+    private static final Field2d robotOnField = new Field2d();
     private static Pose2d currentPose = new Pose2d();
+
+    private static final Field2d autoDisplayField = new Field2d();
+    private static String autoSelected = "";
     private static Trajectory currentTrajectory = new Trajectory();
 
     public static String questStatesColors(String state) {
@@ -56,9 +66,23 @@ public class ElasticHelpers {
         }).orElse("Invalid");
     }
 
+
+    public static void updateAutoSelected() {
+        try {
+            if (RobotContainer.autoChooser != null && RobotContainer.autoChooser.getSelected() != null) {
+                autoSelected = RobotContainer.autoChooser.getSelected().toString();
+            } else {
+                autoSelected = "";
+            }
+        } catch (Exception e) {
+            autoSelected = "";
+        }
+    }
+    
+
     public static String getAutoSelectedColor() {
-        try {  
-            String autoSelected = RobotContainer.autoChooser.getSelected().toString();
+        try {
+            updateAutoSelected();
             // System.out.println("Auto Selected: " + autoSelected);
             if (autoSelected.contains("RED")) {
                 return "#FF0000";
@@ -87,15 +111,52 @@ public class ElasticHelpers {
     }
 
     // Returns the global Field2d instance 
-    public static Field2d getField() {
-        return field;
+    public static Field2d getRobotonfield() {
+        return robotOnField;
     }
 
     // Updates the robot pose displayed on the field 
     public static void updateRobotPose(Pose2d pose) {
         currentPose = pose;
-        field.setRobotPose(pose);
+        robotOnField.setRobotPose(pose);
     }
+
+    // Returns the Field2d used for displaying auto trajectories
+    public static Field2d getAutoDisplayField() {
+        return autoDisplayField;
+    }
+
+    // Displays a PathPlanner path on the auto field as a polyline
+    public static void setAutoPathSingle(PathPlannerPath path) {
+        Pose2d[] poses = path.getAllPathPoints()
+            .stream()
+            .map(p -> new Pose2d(
+                    p.position.getX(),
+                    p.position.getY(),
+                    new Rotation2d()))
+            .toArray(Pose2d[]::new);
+
+        autoDisplayField.getObject("Trajectory").setPoses(poses);
+    }
+
+    public static void setAutoPathMultiple(List<PathPlannerPath> paths) {
+    System.out.println("Setting auto path with multiple paths, count: " + paths.size());
+    List<Pose2d> allPoses = new ArrayList<>();
+
+    for (PathPlannerPath path : paths) {
+        path.getAllPathPoints().forEach(p -> 
+            allPoses.add(new Pose2d(
+                p.position.getX(),
+                p.position.getY(),
+                new Rotation2d() // heading not needed for drawing the line
+            ))
+        );
+    }
+
+    Pose2d[] poseArray = allPoses.toArray(new Pose2d[0]);
+    autoDisplayField.getObject("Trajectory").setPoses(poseArray);
+}
+
 
     // Returns the most recently stored robot pose 
     public static Pose2d getCurrentPose() {
@@ -105,12 +166,12 @@ public class ElasticHelpers {
     // Displays a trajectory on the field 
     public static void setTrajectory(Trajectory trajectory) {
         currentTrajectory = trajectory;
-        field.getObject("Trajectory").setTrajectory(trajectory);
+        autoDisplayField.getObject("Trajectory").setTrajectory(trajectory);
     }
 
     // Clears any displayed trajectory 
     public static void clearTrajectory() {
-        field.getObject("Trajectory").setPoses();
+        autoDisplayField.getObject("Trajectory").setPoses();
     }
 
 }

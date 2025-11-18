@@ -12,14 +12,15 @@ import frc.robot.RobotContainer;
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
 // https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
-public class ThreeMeterForwardPPCommand extends SequentialCommandGroup {
+public class BLUE_ThreeMeterForwardPPCommand extends SequentialCommandGroup {
   /** Creates a new OneMeterForwardPPCommand. */
-  public ThreeMeterForwardPPCommand() {
+  public BLUE_ThreeMeterForwardPPCommand() {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
       new PrintCommand("Running ThreeMeterForward"),
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("ThreeMeterForward", true, false)
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("ThreeMeterForward", true, false),
+      new PrintCommand("End Trajectory")
     );
   }
 }

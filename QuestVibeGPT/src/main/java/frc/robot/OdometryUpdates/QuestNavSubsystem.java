@@ -18,6 +18,7 @@ import org.opencv.core.Point;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.numbers.N1;
@@ -69,8 +70,8 @@ public class QuestNavSubsystem extends SubsystemBase {
   }
 
   public void resetToZeroPose() {
-    Pose2d questPose = QuestNavConstants.robotZeroPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST);
-    questNav.setPose(questPose);
+    Pose2d questPose = (QuestNavConstants.robotZeroPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST));
+    questNav.setPose(new Pose3d(questPose));
     System.out.println("****QRobot reset to zero pose: " + questPose.toString());
   }
 
@@ -89,7 +90,7 @@ public class QuestNavSubsystem extends SubsystemBase {
     
     Pose2d newRobotPose = new Pose2d(getQuestRobotPose().getTranslation(), Rotation2d.fromDegrees(angle));
     System.out.println(newRobotPose.toString());
-    questNav.setPose(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST));
+    questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
   }
 
   /**
@@ -138,7 +139,7 @@ public class QuestNavSubsystem extends SubsystemBase {
    */
   public Pose2d getQuestRobotPose() {
     return (poseFrames != null && poseFrames.length > 0) ?
-      poseFrames[poseFrames.length - 1].questPose()
+      poseFrames[poseFrames.length - 1].questPose3d().toPose2d()
         .transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse()) :
         QuestNavConstants.nullPose;
   }
@@ -169,7 +170,7 @@ public class QuestNavSubsystem extends SubsystemBase {
    */
   public Pose2d getQuestPose() {
     return (poseFrames != null && poseFrames.length > 0) ?
-        poseFrames[poseFrames.length - 1].questPose() :
+        poseFrames[poseFrames.length - 1].questPose3d().toPose2d() :
         QuestNavConstants.nullPose;
   }
 
@@ -183,7 +184,7 @@ public class QuestNavSubsystem extends SubsystemBase {
     Pose2d questPose = rP.transformBy(QuestNavConstants.ROBOT_TO_QUEST);
 
     // Send the reset operation
-    questNav.setPose(questPose);
+    questNav.setPose(new Pose3d(questPose));
     if(DebugTelemetrySubsystems.questnav){
       System.out.println("*** Quest Odometry Reset To: " + questPose.toString());
       System.out.println("*** QRP: " + rP.toString());
@@ -257,7 +258,7 @@ public class QuestNavSubsystem extends SubsystemBase {
               isCharacterizationRunning = true;
               characterizationCounter = 0;
               savedQuestAngle = this.getQuestPose().getRotation().getDegrees();
-              questNav.setPose(QuestNavConstants.characterizationQuestPose);
+              questNav.setPose(new Pose3d(QuestNavConstants.characterizationQuestPose));
               },
             RobotContainer.driveSubsystem
         ),
@@ -285,7 +286,7 @@ public class QuestNavSubsystem extends SubsystemBase {
           }
           // optional: stop drivetrain
           RobotContainer.driveSubsystem.drive(0, 0, 0);
-          questNav.setPose(new Pose2d(0,0,Rotation2d.fromDegrees(savedQuestAngle)));
+          questNav.setPose(new Pose3d((new Pose2d(0,0,Rotation2d.fromDegrees(savedQuestAngle)))));
           isCharacterizationRunning = false;
         })
     )
@@ -304,12 +305,13 @@ public class QuestNavSubsystem extends SubsystemBase {
 
   /** Return a copy of all current PoseFrame elements */
   public PoseFrame[] getAllCurrentPoseframes() {
+    System.out.println("1TEST********");    
     if (poseFrames == null) return null;
-
+    System.out.println("2TEST********");
       return Arrays.stream(poseFrames)
         .map(pf -> pf == null ? null :
           new PoseFrame(
-            new Pose2d(pf.questPose().getTranslation(), pf.questPose().getRotation()),
+            new Pose3d(pf.questPose3d().getTranslation(), pf.questPose3d().getRotation()),
             pf.dataTimestamp(),
             pf.appTimestamp(),
             pf.frameCount()
@@ -353,6 +355,20 @@ public class QuestNavSubsystem extends SubsystemBase {
 
       //update pose Frames
       poseFrames = questNav.getAllUnreadPoseFrames();
+
+       // In robotPeriodic() or subsystem periodic()
+      PoseFrame[] newFrames = questNav.getAllUnreadPoseFrames();
+      for (PoseFrame frame : newFrames) {
+        if (questNav.isTracking() && questNav.isConnected()) {
+          // Add vision measurement to pose estimator
+          RobotContainer.driveSubsystem.addVisionMeasurement(
+            frame.questPose3d().toPose2d(),           // Measured pose
+            frame.dataTimestamp(),       // When measurement was taken
+            VecBuilder.fill(0.1, 0.1, 0.05)  // Standard deviations (tune these)
+          );
+        }
+      }
+ 
       // // Display number of frames provided
       // if(SwerveConstants.CTR_ODOMETRY_UPDATE_FROM_QUEST && !isCharacterizationRunning) {
       //   for (PoseFrame questFrame : poseFrames) {

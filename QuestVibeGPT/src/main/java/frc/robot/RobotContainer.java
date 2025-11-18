@@ -4,19 +4,9 @@
 
 package frc.robot;
 
-import frc.robot.Constants;
-import frc.robot.Constants.PathPlannerConstants;
-import frc.robot.Constants.OperatorConstants.OIContants;
-import frc.robot.Constants.OperatorConstants.SwerveConstants;
-import frc.robot.Constants.OperatorConstants.OIContants.ControllerDevice;
-import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
-import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
-import frc.robot.OdometryUpdates.QuestNavSubsystem;
+import java.util.ArrayList;
+import java.util.List;
 
-import static edu.wpi.first.units.Units.*;
-
-import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
-import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.path.PathPlannerPath;
@@ -24,26 +14,28 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
-import frc.robot.commands.DriveManuallyCommand;
+import frc.robot.Constants.OperatorConstants.OIContants;
+import frc.robot.Constants.OperatorConstants.SwerveConstants;
+import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
+import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
+import frc.robot.OdometryUpdates.QuestNavSubsystem;
+import frc.robot.commands.BLUE_ElasticMultiplePaths;
+import frc.robot.commands.BLUE_ElasticTestPathCommand;
 import frc.robot.commands.BLUE_OneMeterForwardPPCommand;
+import frc.robot.commands.BLUE_ThreeMeterForwardPPCommand;
+import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.RED_OneMeterForwardTurnPPCommand;
-import frc.robot.commands.QuestNavTrajectoryTest;
-import frc.robot.commands.QuestOffsetCharacterization;
 import frc.robot.commands.ReturnTestPPCommand;
 import frc.robot.commands.StopRobot;
-import frc.robot.commands.ThreeMeterForwardPPCommand;
+import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
@@ -70,6 +62,8 @@ public class RobotContainer {
 
     public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
+    private static String lastAutoPathPreview = "";
+
 
     public RobotContainer() {
         configureBindings();
@@ -92,8 +86,68 @@ public class RobotContainer {
   
     autoChooser.addOption("One Meter Forward", new BLUE_OneMeterForwardPPCommand());
     autoChooser.addOption("1M->Turn", new RED_OneMeterForwardTurnPPCommand());
+    autoChooser.addOption("ThreeMeterForward", new BLUE_ThreeMeterForwardPPCommand());
+    autoChooser.setDefaultOption("Elastic Test Command", new BLUE_ElasticTestPathCommand());
+    autoChooser.setDefaultOption("Elastic MultiplePaths Command", new BLUE_ElasticMultiplePaths());
     SmartDashboard.putData(autoChooser);
   } 
+
+  // NEW: call this periodically to keep the auto preview in sync with the chooser
+  public static void updateAutoPathPreview() {
+    Command selected = autoChooser.getSelected();
+    if (selected == null) {
+      return;
+    }
+
+    // Map the selected Command to its PathPlanner path file name
+    ArrayList<String> newPathNameList = new ArrayList<String>();
+    String newPathName = null;
+
+    if (selected instanceof BLUE_OneMeterForwardPPCommand) {
+      newPathName = "OneMeterForward";  
+      newPathNameList.add("OneMeterForward");     
+    } else if (selected instanceof RED_OneMeterForwardTurnPPCommand) {
+      newPathName = "OneMeterForwardTurn";
+      newPathNameList.add("OneMeterForwardTurn");
+    } else if (selected instanceof BLUE_ThreeMeterForwardPPCommand) {
+      newPathName = "ThreeMeterForward";
+      newPathNameList.add("ThreeMeterForward");
+    } else if (selected instanceof BLUE_ElasticTestPathCommand) {
+      newPathName = "ElasticTestPath";
+      newPathNameList.add("ElasticTestPath");
+    }
+    else if (selected instanceof BLUE_ElasticMultiplePaths) {
+      newPathName = "ElasticMultiplePaths";
+      newPathNameList.add("ElasticSegment1");
+      newPathNameList.add("ElasticSegment2");
+      newPathNameList.add("ElasticSegment3");
+    }
+
+    // Nothing we know how to preview
+    if (newPathName == null) {
+      return;
+    }
+
+    // If it's the same path as last time, don't spam reload
+    if (newPathName.equals(lastAutoPathPreview)) {
+      return;
+    }
+
+    lastAutoPathPreview = newPathName;
+
+    try {
+      List<PathPlannerPath> newPaths = new ArrayList<>();
+      for(String path: newPathNameList){
+        newPaths.add(PathPlannerPath.fromPathFile(path));
+      }
+      ElasticHelpers.setAutoPathMultiple(newPaths);   // pushes it into the auto Field2d
+    } catch (Exception e) {
+      DriverStation.reportError(
+          "Error loading path for auto preview: " + newPathNameList,
+          e.getStackTrace());
+    }
+  }
+
 
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
@@ -198,6 +252,8 @@ public class RobotContainer {
     try {
       // Load the path you want to follow using its name in the GUI
       PathPlannerPath path = PathPlannerPath.fromPathFile(tr);
+
+      ElasticHelpers.setAutoPathSingle(path);
 
       Pose2d startPose = path.getStartingHolonomicPose().get(); // reset odometry, as PP may not do so
 

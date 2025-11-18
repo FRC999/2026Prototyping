@@ -135,7 +135,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       if (pf == null) continue;
 
       // Docs: questPose() is the Quest’s Pose2d; convert to robot center with ROBOT_TO_QUEST
-      Pose2d questPose = pf.questPose();                         // :contentReference[oaicite:2]{index=2}
+      Pose2d questPose = pf.questPose3d().toPose2d();                         // :contentReference[oaicite:2]{index=2}
       if (questPose == null) continue;
       Pose2d robotPose = questPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse()); // :contentReference[oaicite:3]{index=3}
 

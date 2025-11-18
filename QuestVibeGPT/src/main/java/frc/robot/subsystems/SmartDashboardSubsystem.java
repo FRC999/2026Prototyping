@@ -31,7 +31,8 @@ public class SmartDashboardSubsystem extends SubsystemBase {
   }
 
   public void TeleopTelemetry() {
-    SmartDashboard.putData("Field", ElasticHelpers.getField());
+    SmartDashboard.putData("Field", ElasticHelpers.getRobotonfield());
+    SmartDashboard.putData("Auto Field", ElasticHelpers.getAutoDisplayField());
     SmartDashboard.putString("Lock in to End Game", ElasticHelpers.shouldEndGameColor());
   }
 
@@ -40,6 +41,8 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     // This method will be called once per scheduler run
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     ElasticHelpers.updateRobotPose(robotPose);
+
+    RobotContainer.updateAutoPathPreview();
 
     updateLLTelemetry();
     SystemsCheckTelemetry();

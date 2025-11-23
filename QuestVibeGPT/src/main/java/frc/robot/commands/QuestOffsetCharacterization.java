@@ -38,7 +38,7 @@ public class QuestOffsetCharacterization extends Command {
   @Override
   public void execute() {
     if(counter++ % everyN == 0) {
-      Pose2d pose = RobotContainer.questNavSubsystem.getQuestPose();
+      Pose2d pose = RobotContainer.questNavSubsystem.getQuestPose2d();
       robotPoses.add(new Double[]{pose.getX(), pose.getY()});
     }
   }

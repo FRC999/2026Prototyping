@@ -12,7 +12,9 @@ import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.path.PathPlannerPath;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -205,7 +207,7 @@ public class RobotContainer {
         .onTrue(new ReturnTestPPCommand())
         .onFalse(new StopRobot());
       new JoystickButton(xboxDriveController, 3)
-        .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose2d(10, 10, Rotation2d.k180deg))));
+        .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose3d(10, 10, 0, new Rotation3d(0, 0, Math.PI))))); //TODO: Check Formatting
 
       new JoystickButton(xboxDriveController, 4)
         .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
@@ -271,7 +273,7 @@ public class RobotContainer {
         //System.out.println("Rigth before driving with reset");
 
         return Commands.sequence(new InstantCommand(() -> 
-          questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))), 
+          questNavSubsystem.resetQuestOdometry(new Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))), 
             AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
         
           //return Commands.sequence(AutoBuilder.resetOdom(startPose));

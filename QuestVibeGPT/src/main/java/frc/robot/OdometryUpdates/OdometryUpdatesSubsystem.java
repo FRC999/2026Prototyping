@@ -10,6 +10,7 @@ import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
@@ -221,7 +222,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   }
 
   private void calibrateQuestFromLL(Pose2d robotPose) {
-    RobotContainer.questNavSubsystem.resetQuestOdometry(robotPose);
+    RobotContainer.questNavSubsystem.resetQuestOdometry(new Pose3d(robotPose));
   }
   
   /** Centralized state change: logs FROM→TO (+reason), time, and bumps a counter. */
@@ -295,7 +296,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       }
       case SEEKING_TAGS_Q -> { // Quest was present before
         if (RobotContainer.questNavSubsystem.isTracking()){ // Quest is still working
-          Pose2d rp = RobotContainer.questNavSubsystem.getQuestRobotPose();
+          Pose2d rp = RobotContainer.questNavSubsystem.getQuestRobotPose2d();
           if(!rp.equals(QuestNavConstants.nullPose)){ // But occasionally there are no new poses Quest gives us. If so, do not update LL
             RobotContainer.llAprilTagSubsystem.setLLOrientation(rp.getRotation().getDegrees(), RobotContainer.driveSubsystem.getTurnRate());
           }

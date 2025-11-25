@@ -12,24 +12,9 @@ import frc.robot.Constants.PathPlannerConstants;
 
 public class TrajectoryHelper {
 
-    private static final double FIELD_LENGTH_BLUE = 8.2296; // 27 feet
+    public static final double FIELD_LENGTH_BLUE = 8.2296; // 27 feet
 
-    private ArrayList<PathPlannerPath> blueTrajectories = new ArrayList<PathPlannerPath>();
-    private ArrayList<PathPlannerPath> redTrajectories = new ArrayList<PathPlannerPath>();
-
-    public TrajectoryHelper() {
-        try {
-            blueTrajectories.add(PathPlannerPath.fromPathFile("ElasticTestPath"));
-            blueTrajectories.add(PathPlannerPath.fromPathFile("ThreeMeterForward"));
-            blueTrajectories.add(PathPlannerPath.fromPathFile("OneMeterForwardTurn"));
-
-            redTrajectories.add(PathPlannerPath.fromPathFile("RedElasticTestPath"));
-            redTrajectories.add(PathPlannerPath.fromPathFile("RedThreeMeterForward"));
-            redTrajectories.add(PathPlannerPath.fromPathFile("RedOneMeterForwardTurn"));
-        } catch (Exception e) {
-            
-        }
-    }
+    public TrajectoryHelper() {}
 
     /**
      * When running a trajectory, PP flips it automatically (unless disabled by a flag)
@@ -45,28 +30,5 @@ public class TrajectoryHelper {
         return (PathPlannerConstants.shouldFlipTrajectoryOnRed) ? 
             FlippingUtil.flipFieldPose(pose) :
             pose;
-    }
-
-    public static PathPlannerPath selectAutoBasedOnATPose(Pose2d robotPose2d) {
-        boolean isRobotBlue = true;
-        if (robotPose2d.getX() < FIELD_LENGTH_BLUE / 2) {
-            isRobotBlue = true;
-        } else {
-            isRobotBlue = false;
-        }
-
-        if(isRobotBlue) {
-            return nearestTrajectoryBlue();
-        } else {
-            return nearestTrajectoryRed();
-        }
-    }
-
-    private static PathPlannerPath nearestTrajectoryBlue() {
-        return null;
-    }
-
-    private static PathPlannerPath nearestTrajectoryRed() {
-        return null;
     }
 }

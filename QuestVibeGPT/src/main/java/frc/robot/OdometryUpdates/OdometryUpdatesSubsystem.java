@@ -386,7 +386,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
           fuseLLCamera(llcamera);
         }
-
+        RobotContainer.AutonomousConfigure();
       }
       case CALIBRATED_NO_Q -> {
         Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
@@ -407,6 +407,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         for (LLCamera llcamera : RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
           fuseLLCamera(llcamera);
         }
+        RobotContainer.AutonomousConfigure();
       }
     }
   }

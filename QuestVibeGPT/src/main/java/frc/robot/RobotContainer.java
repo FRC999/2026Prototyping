@@ -42,57 +42,73 @@ import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
 
-
 public class RobotContainer {
 
-     // kSpeedAt12Volts desired top speed
-     // 3/4 of a rotation per second max angular velocity
+  // kSpeedAt12Volts desired top speed
+  // 3/4 of a rotation per second max angular velocity
 
-    /* Setting up bindings for necessary control of the swerve drive platform */
-    // Use open-loop control for drive motors
-    private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
+  /* Setting up bindings for necessary control of the swerve drive platform */
+  // Use open-loop control for drive motors
+  private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
-    private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
-    public static boolean isAllianceRed = false;
-    public static boolean isReversingControllerAndIMUForRed = true;
+  private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
+  public static boolean isAllianceRed = false;
+  public static boolean isReversingControllerAndIMUForRed = true;
 
-    public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
-    public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
-    public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
-    public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
-    public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
+  public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
+  public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
+  public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
+  public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
+  public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
-    public static SendableChooser<Command> autoChooser = new SendableChooser<>();
+  public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
-    private static String lastAutoPathPreview = "";
+  private static String lastAutoPathPreview = "";
 
+  public RobotContainer() {
+    configureBindings();
+    testTrajectory();
+    setYaws();
 
-    public RobotContainer() {
-        configureBindings();
-        testTrajectory();
-        setYaws();
+    driveSubsystem.setDefaultCommand(
+        new DriveManuallyCommand(
+            () -> getDriverXAxis(),
+            () -> getDriverYAxis(),
+            () -> getDriverOmegaAxis()));
+    FollowPathCommand.warmupCommand().schedule();
 
-        driveSubsystem.setDefaultCommand(
-      new DriveManuallyCommand(
-          () -> getDriverXAxis(),
-          () -> getDriverYAxis(),
-          () -> getDriverOmegaAxis()));
-        FollowPathCommand.warmupCommand().schedule();
+    AutonomousConfigure();
+  }
 
-      AutonomousConfigure();
-    }
-
-    private void AutonomousConfigure () {
-      //port autonomous routines as commands
-    //sets the default option of the SendableChooser to the simplest autonomous command. (from touching the hub, drive until outside the tarmac zone) 
-  
-    autoChooser.addOption("One Meter Forward", new BLUE_OneMeterForwardPPCommand());
-    autoChooser.addOption("1M->Turn", new RED_OneMeterForwardTurnPPCommand());
-    autoChooser.addOption("ThreeMeterForward", new BLUE_ThreeMeterForwardPPCommand());
-    autoChooser.setDefaultOption("Elastic Test Command", new BLUE_ElasticTestPathCommand());
-    autoChooser.setDefaultOption("Elastic MultiplePaths Command", new BLUE_ElasticMultiplePaths());
+  public static void AutonomousConfigure() {
+    // port autonomous routines as commands
+    // sets the default option of the SendableChooser to the simplest autonomous
+    // command. (from touching the hub, drive until outside the tarmac zone)
+    selectAutoListBasedOnATPose(driveSubsystem.getState().Pose);
     SmartDashboard.putData(autoChooser);
-  } 
+  }
+
+  public static void selectAutoListBasedOnATPose(Pose2d robotPose2d) {
+    boolean isRobotBlue = true;
+    if (robotPose2d.getX() < TrajectoryHelper.FIELD_LENGTH_BLUE) {
+      isRobotBlue = true;
+    } else {
+      isRobotBlue = false;
+    }
+    try {
+      if (isRobotBlue) {
+        autoChooser.addOption("One Meter Forward", new BLUE_OneMeterForwardPPCommand());
+        autoChooser.addOption("ThreeMeterForward", new BLUE_ThreeMeterForwardPPCommand());
+        autoChooser.addOption("Elastic Test Command", new BLUE_ElasticTestPathCommand());
+        autoChooser.addOption("Elastic MultiplePaths Command", new BLUE_ElasticMultiplePaths());
+        autoChooser.setDefaultOption("One Meter Forward", new BLUE_OneMeterForwardPPCommand());
+      } else {
+        autoChooser.addOption("1M->Turn", new RED_OneMeterForwardTurnPPCommand());
+      }
+    } catch (Exception e) {
+      DriverStation.reportError("Error loading default auto path: " + e.getMessage(), e.getStackTrace());
+    }
+  }
 
   // NEW: call this periodically to keep the auto preview in sync with the chooser
   public static void updateAutoPathPreview() {
@@ -106,8 +122,8 @@ public class RobotContainer {
     String newPathName = null;
 
     if (selected instanceof BLUE_OneMeterForwardPPCommand) {
-      newPathName = "OneMeterForward";  
-      newPathNameList.add("OneMeterForward");     
+      newPathName = "OneMeterForward";
+      newPathNameList.add("OneMeterForward");
     } else if (selected instanceof RED_OneMeterForwardTurnPPCommand) {
       newPathName = "OneMeterForwardTurn";
       newPathNameList.add("OneMeterForwardTurn");
@@ -117,8 +133,7 @@ public class RobotContainer {
     } else if (selected instanceof BLUE_ElasticTestPathCommand) {
       newPathName = "ElasticTestPath";
       newPathNameList.add("ElasticTestPath");
-    }
-    else if (selected instanceof BLUE_ElasticMultiplePaths) {
+    } else if (selected instanceof BLUE_ElasticMultiplePaths) {
       newPathName = "ElasticMultiplePaths";
       newPathNameList.add("ElasticSegment1");
       newPathNameList.add("ElasticSegment2");
@@ -139,10 +154,10 @@ public class RobotContainer {
 
     try {
       List<PathPlannerPath> newPaths = new ArrayList<>();
-      for(String path: newPathNameList){
+      for (String path : newPathNameList) {
         newPaths.add(PathPlannerPath.fromPathFile(path));
       }
-      ElasticHelpers.setAutoPathMultiple(newPaths);   // pushes it into the auto Field2d
+      ElasticHelpers.setAutoPathMultiple(newPaths); // pushes it into the auto Field2d
     } catch (Exception e) {
       DriverStation.reportError(
           "Error loading path for auto preview: " + newPathNameList,
@@ -150,106 +165,117 @@ public class RobotContainer {
     }
   }
 
+  private void configureBindings() {
+    // Note that X is defined as forward according to WPILib convention,
+    // and Y is defined as to the left according to WPILib convention.
+    // driveSubsystem.setDefaultCommand(
+    // // Drivetrain will execute this command periodically
+    // driveSubsystem.applyRequest(() ->
+    // driveSubsystem.getDrive().withVelocityX(-xboxDriveController.getLeftY() *
+    // SwerveConstants.MaxSpeed) // Drive forward with negative Y (forward)
+    // .withVelocityY(-xboxDriveController.getLeftX() * SwerveConstants.MaxSpeed) //
+    // Drive left with negative X (left)
+    // .withRotationalRate(-xboxDriveController.getRightX() *
+    // SwerveConstants.MaxAngularRate) // Drive counterclockwise with negative X
+    // (left)
+    // )
+    // );
 
-    private void configureBindings() {
-        // Note that X is defined as forward according to WPILib convention,
-        // and Y is defined as to the left according to WPILib convention.
-        // driveSubsystem.setDefaultCommand(
-        //     // Drivetrain will execute this command periodically
-        //     driveSubsystem.applyRequest(() ->
-        //         driveSubsystem.getDrive().withVelocityX(-xboxDriveController.getLeftY() * SwerveConstants.MaxSpeed) // Drive forward with negative Y (forward)
-        //             .withVelocityY(-xboxDriveController.getLeftX() * SwerveConstants.MaxSpeed) // Drive left with negative X (left)
-        //             .withRotationalRate(-xboxDriveController.getRightX() * SwerveConstants.MaxAngularRate) // Drive counterclockwise with negative X (left)
-        //     )
-        // );
+    // Idle while the robot is disabled. This ensures the configured
+    // neutral mode is applied to the drive motors while disabled.
+    RobotModeTriggers.disabled()
+        .whileTrue(driveSubsystem.applyRequest(() -> driveSubsystem.getIdle()).ignoringDisable(true));
 
-        // Idle while the robot is disabled. This ensures the configured
-        // neutral mode is applied to the drive motors while disabled.
-        RobotModeTriggers.disabled().whileTrue(driveSubsystem.applyRequest(() -> driveSubsystem.getIdle()).ignoringDisable(true));
+    // xboxDriveController.a().whileTrue(driveSubsystem.applyRequest(() ->
+    // driveSubsystem.getBrake()));
+    // xboxDriveController.b().whileTrue(driveSubsystem.applyRequest(() ->
+    // driveSubsystem.getPoint().withModuleDirection(new
+    // Rotation2d(-xboxDriveController.getLeftY(), -xboxDriveController.getLeftX()))
+    // ));
 
-        // xboxDriveController.a().whileTrue(driveSubsystem.applyRequest(() -> driveSubsystem.getBrake()));
-        // xboxDriveController.b().whileTrue(driveSubsystem.applyRequest(() ->
-        //     driveSubsystem.getPoint().withModuleDirection(new Rotation2d(-xboxDriveController.getLeftY(), -xboxDriveController.getLeftX()))
-        // ));
+    // Run SysId routines when holding back/start and X/Y.
+    // Note that each routine should be run exactly once in a single log.
+    // xboxDriveController.back().and(xboxDriveController.y()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kForward));
+    // xboxDriveController.back().and(xboxDriveController.x()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kReverse));
+    // xboxDriveController.start().and(xboxDriveController.y()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kForward));
+    // xboxDriveController.start().and(xboxDriveController.x()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kReverse));
 
-        // Run SysId routines when holding back/start and X/Y.
-        // Note that each routine should be run exactly once in a single log.
-        // xboxDriveController.back().and(xboxDriveController.y()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kForward));
-        // xboxDriveController.back().and(xboxDriveController.x()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kReverse));
-        // xboxDriveController.start().and(xboxDriveController.y()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kForward));
-        // xboxDriveController.start().and(xboxDriveController.x()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kReverse));
+    // // reset the field-centric heading on left bumper press
+    // xboxDriveController.leftBumper().onTrue(driveSubsystem.runOnce(() ->
+    // driveSubsystem.seedFieldCentric()));
 
-        // // reset the field-centric heading on left bumper press
-        // xboxDriveController.leftBumper().onTrue(driveSubsystem.runOnce(() -> driveSubsystem.seedFieldCentric()));
+    driveSubsystem.registerTelemetry(logger::telemeterize);
 
-        driveSubsystem.registerTelemetry(logger::telemeterize);
+    // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
+    // .onFalse(stopRobotCommand());
+  }
 
-        // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
-        //             .onFalse(stopRobotCommand());
-    }
+  public Command stopRobotCommand() {
+    System.out.println("***Stopping Robot");
+    return driveSubsystem.applyRequest(() -> driveSubsystem.getDrive().withVelocityX(0) // Drive forward with negative Y
+                                                                                        // (forward)
+        .withVelocityY(0) // Drive left with negative X (left)
+        .withRotationalRate(0) // Drive counterclockwise with negative X (left)
 
-    public Command stopRobotCommand() {
-        System.out.println("***Stopping Robot");
-        return driveSubsystem.applyRequest(() ->
-                driveSubsystem.getDrive().withVelocityX(0) // Drive forward with negative Y (forward)
-                    .withVelocityY(0) // Drive left with negative X (left)
-                    .withRotationalRate(0) // Drive counterclockwise with negative X (left)
-                    
-        );
-    }
+    );
+  }
 
-    private void testTrajectory() {
-      new JoystickButton(xboxDriveController, 1)
+  private void testTrajectory() {
+    new JoystickButton(xboxDriveController, 1)
         .onTrue(new BLUE_OneMeterForwardPPCommand());
-        // new JoystickButton(xboxDriveController, 2)
-        // .onTrue(new ThreeMeterForwardPPCommand());
-      new JoystickButton(xboxDriveController, 2)
+    // new JoystickButton(xboxDriveController, 2)
+    // .onTrue(new ThreeMeterForwardPPCommand());
+    new JoystickButton(xboxDriveController, 2)
         .onTrue(new ReturnTestPPCommand())
         .onFalse(new StopRobot());
-      new JoystickButton(xboxDriveController, 3)
-        .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose3d(10, 10, 0, new Rotation3d(0, 0, Math.PI))))); //TODO: Check Formatting
+    new JoystickButton(xboxDriveController, 3)
+        .onTrue(new InstantCommand(
+            () -> questNavSubsystem.resetQuestOdometry(new Pose3d(10, 10, 0, new Rotation3d(0, 0, Math.PI))))); // TODO:
+                                                                                                                // Check
+                                                                                                                // Formatting
 
-      new JoystickButton(xboxDriveController, 4)
+    new JoystickButton(xboxDriveController, 4)
         .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
         .onFalse(new StopRobot());
 
-      new JoystickButton(xboxDriveController, 5)
+    new JoystickButton(xboxDriveController, 5)
         .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
         .onFalse(new StopRobot());
-    }
+  }
 
-    public void setYaws() {
+  public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
-      .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
-        .andThen(new InstantCommand(()-> questNavSubsystem.zeroYaw())));
+        .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
+            .andThen(new InstantCommand(() -> questNavSubsystem.zeroYaw())));
     new JoystickButton(xboxDriveController, 7)
         .onTrue(new InstantCommand(() -> questNavSubsystem.resetToZeroPose()));
   }
 
-     // Driver preferred controls
-     private double getDriverXAxis() {
-      //return -xboxController.getLeftStickY();
-      // SmartDashboard.putNumber("X-Axis: ", -xboxDriveController.getRightStickY());
-      return -xboxDriveController.getRightStickY();
-    }
-  
-    private double getDriverYAxis() {
-      //return -xboxController.getLeftStickX();
-      // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
-      return -xboxDriveController.getRightStickX();
-    }
-  
-    private double getDriverOmegaAxis() {
-      //return -xboxController.getLeftStickOmega();
-      // SmartDashboard.putNumber("Z-Axis: ", -xboxDriveController.getLeftStickX() * 0.6);
-      return -xboxDriveController.getLeftStickX() * 0.6;
-    }
+  // Driver preferred controls
+  private double getDriverXAxis() {
+    // return -xboxController.getLeftStickY();
+    // SmartDashboard.putNumber("X-Axis: ", -xboxDriveController.getRightStickY());
+    return -xboxDriveController.getRightStickY();
+  }
 
-    public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
+  private double getDriverYAxis() {
+    // return -xboxController.getLeftStickX();
+    // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
+    return -xboxDriveController.getRightStickX();
+  }
+
+  private double getDriverOmegaAxis() {
+    // return -xboxController.getLeftStickOmega();
+    // SmartDashboard.putNumber("Z-Axis: ", -xboxDriveController.getLeftStickX() *
+    // 0.6);
+    return -xboxDriveController.getLeftStickX() * 0.6;
+  }
+
+  public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
       boolean shouldResetOdometryToStartingPose, boolean flipTrajectory) {
 
-                // alex test
-                System.out.println("Start drive routine");
+    // alex test
+    //System.out.println("Start drive routine");
 
     try {
       // Load the path you want to follow using its name in the GUI
@@ -261,25 +287,27 @@ public class RobotContainer {
 
       // Create a path following command using AutoBuilder. This will also trigger
       // event markers.
-      if (! shouldResetOdometryToStartingPose) {
+      if (!shouldResetOdometryToStartingPose) {
 
         // alex test
-        //System.out.println("Rigth before driving without reset");
+        // System.out.println("Rigth before driving without reset");
         return AutoBuilder.followPath(path);
 
       } else { // reset odometry the right way
 
         // alex test
-        //System.out.println("Rigth before driving with reset");
+        // System.out.println("Rigth before driving with reset");
 
-        return Commands.sequence(new InstantCommand(() -> 
-          questNavSubsystem.resetQuestOdometry(new Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))), 
+        return Commands.sequence(
+            new InstantCommand(
+                () -> questNavSubsystem.resetQuestOdometry(new Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))),
             AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
-        
-          //return Commands.sequence(AutoBuilder.resetOdom(startPose));
 
-        // return Commands.sequence(new InstantCommand(() -> 
-        //   questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))), AutoBuilder.resetOdom(startPose));
+        // return Commands.sequence(AutoBuilder.resetOdom(startPose));
+
+        // return Commands.sequence(new InstantCommand(() ->
+        // questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))),
+        // AutoBuilder.resetOdom(startPose));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
@@ -289,30 +317,29 @@ public class RobotContainer {
 
   // alex test
   // public static Command testCommand2() {
-  //   return new PrintCommand("Test 2 Command");
+  // return new PrintCommand("Test 2 Command");
   // }
 
-    // Alliance color determination
-    public void checkAllianceColor() {
-      SmartDashboard.putString("AllianceColor", DriverStation.getAlliance().toString());
-    }
-  
-    public static void setIfAllianceRed() {
-      var alliance = DriverStation.getAlliance();
-      if (! alliance.isPresent()) {
-          System.out.println("=== !!! Alliance not present !!! === Staying with the BLUE system");
-      } else {
-          isAllianceRed = alliance.get() == DriverStation.Alliance.Red;
-          System.out.println("*** RED Alliance: "+isAllianceRed);
-      }
-    }
-    public static void toggleReversingControllerAndIMUForRed() {
-      isReversingControllerAndIMUForRed = !isReversingControllerAndIMUForRed;
-    }
+  // Alliance color determination
+  public void checkAllianceColor() {
+    SmartDashboard.putString("AllianceColor", DriverStation.getAlliance().toString());
+  }
 
-
-
-    public Command getAutonomousCommand() {
-        return autoChooser.getSelected();
+  public static void setIfAllianceRed() {
+    var alliance = DriverStation.getAlliance();
+    if (!alliance.isPresent()) {
+      System.out.println("=== !!! Alliance not present !!! === Staying with the BLUE system");
+    } else {
+      isAllianceRed = alliance.get() == DriverStation.Alliance.Red;
+      System.out.println("*** RED Alliance: " + isAllianceRed);
     }
+  }
+
+  public static void toggleReversingControllerAndIMUForRed() {
+    isReversingControllerAndIMUForRed = !isReversingControllerAndIMUForRed;
+  }
+
+  public Command getAutonomousCommand() {
+    return autoChooser.getSelected();
+  }
 }

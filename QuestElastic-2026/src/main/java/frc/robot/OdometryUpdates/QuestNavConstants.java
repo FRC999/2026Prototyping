@@ -13,8 +13,8 @@ import edu.wpi.first.math.numbers.N3;
 
 public class QuestNavConstants {
     //public static final Transform2d ROBOT_TO_QUEST = new Transform2d(0.23, -0.26, Rotation2d.fromDegrees(-41)); //Original was -0.32, -0.29
-    public static final Transform2d ROBOT_TO_QUEST = new Transform2d(0.4, 0.3, Rotation2d.k180deg); //2024 Constant
-    public static final Transform3d ROBOT_TO_QUEST_3D = new Transform3d(0.4, 0.3, 0.0, new Rotation3d(0, 0, Math.PI)); //2024 Constant
+    public static final Transform2d ROBOT_TO_QUEST = new Transform2d(0.26, -0.24, Rotation2d.fromDegrees(-53.45)); //2024 Constant
+    public static final Transform3d ROBOT_TO_QUEST_3D = new Transform3d(0.26, -0.24, 0.0, new Rotation3d(Rotation2d.fromDegrees(-53.45))); //2024 Constant
     public static final Pose2d characterizationQuestPose = new Pose2d();
     public static final Pose3d characterizationQuestPose3d = new Pose3d(characterizationQuestPose);
     public static final Pose2d nullPose = new Pose2d(-1000, -1000, Rotation2d.kZero);

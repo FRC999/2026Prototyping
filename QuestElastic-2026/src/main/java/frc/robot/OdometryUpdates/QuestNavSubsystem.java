@@ -48,6 +48,9 @@ public class QuestNavSubsystem extends SubsystemBase {
   public static Pose2d endCharacterizationPose;
   public static double savedQuestAngle;
 
+  public static int qCounter = 50;
+
+
   
   private boolean initialPoseSet;
   public boolean isInitialPoseSet() {
@@ -64,6 +67,8 @@ public class QuestNavSubsystem extends SubsystemBase {
   public QuestNavSubsystem() {
     initialPoseSet = false;
     questNav = new QuestNav();
+
+    System.out.println("******QB:"+questNav.getBatteryPercent().orElse(0));
 
     resetToZeroPose();
 
@@ -301,8 +306,8 @@ public class QuestNavSubsystem extends SubsystemBase {
             endCharacterizationPose = this.getQuestPose2d();
             System.out.println("S: " + startCharacterizationPose.toString() +
                                " E: " + endCharacterizationPose.toString() +
-                               " Angle: " + Math.atan((endCharacterizationPose.getY()-startCharacterizationPose.getY()) /
-                                                    (endCharacterizationPose.getX()-startCharacterizationPose.getX())));
+                               " Angle: " + Rotation2d.fromRadians(Math.atan((endCharacterizationPose.getY()-startCharacterizationPose.getY()) /
+                                                    (endCharacterizationPose.getX()-startCharacterizationPose.getX()))));
           } catch (Exception e) {
             System.out.println(e);
           }
@@ -334,7 +339,8 @@ public class QuestNavSubsystem extends SubsystemBase {
             new Pose3d(pf.questPose3d().getTranslation(), pf.questPose3d().getRotation()),
             pf.dataTimestamp(),
             pf.appTimestamp(),
-            pf.frameCount()
+            pf.frameCount(),
+            true
           )
         )
       .toArray(PoseFrame[]::new);
@@ -353,6 +359,8 @@ public class QuestNavSubsystem extends SubsystemBase {
     }
   }
 
+  
+
   @Override
   public void periodic() {
 
@@ -361,6 +369,7 @@ public class QuestNavSubsystem extends SubsystemBase {
 
       // QuestNav telemetry
       if (DebugTelemetrySubsystems.questnav) {
+        SmartDashboard.putNumber("qBattery", questNav.getBatteryPercent().getAsInt());
         SmartDashboard.putString("qTranformedPose3dTranslation: ", getQuestRobotPose3d().getTranslation().toString());
         SmartDashboard.putNumber("qTranformedPose3dRotation: ", (getQuestRobotPose3d().getRotation().getMeasureZ().magnitude()*180/Math.PI));
         SmartDashboard.putString("qTruePose3dTranslation: ", getQuestPose3d().getTranslation().toString());
@@ -369,6 +378,13 @@ public class QuestNavSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
         SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
         SmartDashboard.putNumber("Time FPGA: ", Timer.getFPGATimestamp());
+
+        if(qCounter-- == 0) {
+          SmartDashboard.putNumber("qRejected: ", RobotContainer.odometryUpdateSubsystem.getRejectedQuestPoses());
+          SmartDashboard.putNumber("qAccepted: ", RobotContainer.odometryUpdateSubsystem.getAcceptedQuestPoses());
+          qCounter = 50;
+        }
+        
         if(poseFrames != null) {
           SmartDashboard.putNumber("qFrames", poseFrames.length);
         }

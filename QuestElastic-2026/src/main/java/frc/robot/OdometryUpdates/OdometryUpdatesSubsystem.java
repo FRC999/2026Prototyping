@@ -107,6 +107,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private int transitionSeq = 0;
   private Timer llTimer = new Timer();
 
+  private int acceptedQuestPoseCounter = 0;
+  private int rejectedQuestPoseCounter = 0;
+
+
   
 
   /** Creates a new OdometryUpdatesSubsystem. */
@@ -146,12 +150,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
       if (gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) {
         Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
+        acceptedQuestPoseCounter++;
         RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
         //System.out.println("T");
         //System.out.println(Timer.getFPGATimestamp());
         gatePassOverrideIntermediate = false;
         // System.out.println("TEST");
       } else {
+        rejectedQuestPoseCounter++;
         if (DebugTelemetrySubsystems.questnav) {
           SmartDashboard.putString("QuestNav Rejected Pose", robotPose.toString());
           SmartDashboard.putNumber("QuestNav Rejected TransErr", robotPose.getTranslation().getDistance(poseNow.getTranslation()));
@@ -254,6 +260,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("Odometry-TransitionSeq", transitionSeq);
       SmartDashboard.putNumber("Odometry-LastTransitionTimeSec", lastTransitionTime);
     }
+  }
+
+  public int getAcceptedQuestPoses() {
+    return acceptedQuestPoseCounter;
+  }
+
+  public int getRejectedQuestPoses() {
+    return rejectedQuestPoseCounter;
   }
 
   @Override
@@ -383,9 +397,9 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
 
         // One way or the other, process odometry updates from LL
-        for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-          fuseLLCamera(llcamera);
-        }
+        // for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+        //   fuseLLCamera(llcamera);
+        // }
         RobotContainer.AutonomousConfigure();
       }
       case CALIBRATED_NO_Q -> {

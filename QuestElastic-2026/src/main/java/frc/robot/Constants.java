@@ -3,6 +3,7 @@
 // the WPILib BSD license file in the root directory of this project.
 
 package frc.robot;
+import static edu.wpi.first.units.Units.*;
 
 import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.Inches;
@@ -13,9 +14,11 @@ import static edu.wpi.first.units.Units.Volts;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
@@ -111,7 +114,7 @@ public final class Constants {
       public static final Slot0Configs driveGains = new Slot0Configs()
           .withKP(0.1).withKI(0).withKD(0)
           .withKS(0).withKV(0.124);
-      public static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration()
+      public static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration().withMotorOutput(new MotorOutputConfigs().withNeutralMode(NeutralModeValue.Brake))
           .withCurrentLimits(
               new CurrentLimitsConfigs()
                   // Swerve azimuth does not require much torque output, so we can set a
@@ -119,7 +122,7 @@ public final class Constants {
                   // stator current limit to help avoid brownouts without impacting performance.
                   .withStatorCurrentLimit(Amps.of(60))
                   .withStatorCurrentLimitEnable(true));
-      public static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
+      public static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration().withMotorOutput(new MotorOutputConfigs().withNeutralMode(NeutralModeValue.Brake));
       public static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
 
       // Added from original TunerConstants (auto-merged):
@@ -144,6 +147,9 @@ public final class Constants {
       public static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.01);
       public static final SteerMotorArrangement kSteerMotorType = SteerMotorArrangement.TalonFX_Integrated;
       public static final Distance kWheelRadius = Inches.of(2);
+
+      public static final double TRACK_WIDTH = Meters.convertFrom(19.50, Inches); // left to right
+			public static final double WHEEL_BASE = Meters.convertFrom(19.50, Inches); // front to back
 
       public static SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> ConstantCreator = new SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>()
           .withDriveMotorGearRatio(kDriveGearRatio)

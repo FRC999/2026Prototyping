@@ -64,6 +64,9 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private boolean isRobotCentric = false;
     Pigeon2 imu;
 
+    // alex test
+    int counter = 0;
+
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
     /* Red alliance sees forward as 180 degrees (toward blue alliance wall) */
@@ -296,6 +299,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        this.resetCTREPose(new Pose2d(0,0, new Rotation2d(0)));
     }
 
     private void configureAutoBuilder() {
@@ -571,6 +575,12 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         
         // update history of the chassis poses, needed for odometry updates using Quest or LL
         poseBuffer.addSample(Timer.getFPGATimestamp(), this.getPose());
+
+        //if (counter++ %50 == 0) {
+        //    this.resetCTREPose(new Pose2d(0,0, new Rotation2d(0)));
+        //}
+        //System.out.println(this.getPose());
+
     }
 
     private void startSimThread() {

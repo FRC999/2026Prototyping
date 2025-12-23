@@ -380,8 +380,8 @@ public class QuestNavSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Time FPGA: ", Timer.getFPGATimestamp());
 
         if(qCounter-- == 0) {
-          SmartDashboard.putNumber("qRejected: ", RobotContainer.odometryUpdateSubsystem.getRejectedQuestPoses());
-          SmartDashboard.putNumber("qAccepted: ", RobotContainer.odometryUpdateSubsystem.getAcceptedQuestPoses());
+         // SmartDashboard.putNumber("qRejected: ", RobotContainer.odometryUpdateSubsystem.getRejectedQuestPoses());
+          //SmartDashboard.putNumber("qAccepted: ", RobotContainer.odometryUpdateSubsystem.getAcceptedQuestPoses());
           qCounter = 50;
         }
         

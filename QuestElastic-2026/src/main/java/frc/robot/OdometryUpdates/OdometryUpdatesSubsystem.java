@@ -151,7 +151,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       if (gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) {
         Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
         acceptedQuestPoseCounter++;
-        RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
+        //RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
         //System.out.println("T");
         //System.out.println(Timer.getFPGATimestamp());
         gatePassOverrideIntermediate = false;
@@ -223,7 +223,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
 
     Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, pe.tagCount, ambiguity);
-    RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+    //RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
     VisionHelpers.updateLLTelemetry(pe, cn);
   }
 
@@ -319,7 +319,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           if (bestPoseEstimate != null) {
             // We see AT and have a good pose estimate
             calibrateQuestFromLL(bestPoseEstimate.pose);
-            RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
+            //RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
             gatePassOverride = false;
             RobotContainer.questNavSubsystem.setInitialPoseSet(true);
 
@@ -340,7 +340,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         if(llTimer.hasElapsed(QuestNavConstants.llWait)){
           System.out.println("******* time elapsed");
           calibrateQuestFromLL(QuestNavConstants.startingPositionNoLL);
-          RobotContainer.driveSubsystem.resetCTREPose(QuestNavConstants.startingPositionNoLL);
+          //RobotContainer.driveSubsystem.resetCTREPose(QuestNavConstants.startingPositionNoLL);
 
           gatePassOverride = false;
           RobotContainer.questNavSubsystem.setInitialPoseSet(true);
@@ -372,8 +372,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
         if (poseEstimate != null) { // We see AT and have a good pose estimate, though Quest is still not UP
           // Set robot odometry to the pose detected
-          RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
+          //RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
           gatePassOverride = false;
+        
+          System.out.print("****** PE: " + poseEstimate.pose);
 
           transitionTo(VisionState.CALIBRATED_NO_Q, "Good LL fix w/o Quest; anchored"); // SEEKING_TAGS_NO_Q -> CALIBRATED_NO_Q
           //state = VisionState.CALIBRATED_NO_Q; // Now we're calibrated without Quest
@@ -419,7 +421,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
         // Even if Quest came up this cycle, I want to update odometry from LL
         for (LLCamera llcamera : RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-          fuseLLCamera(llcamera);
+          //fuseLLCamera(llcamera);
         }
         RobotContainer.AutonomousConfigure();
       }

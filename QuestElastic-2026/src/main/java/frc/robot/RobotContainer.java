@@ -59,7 +59,7 @@ public class RobotContainer {
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
   public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
-  public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
+  //public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();

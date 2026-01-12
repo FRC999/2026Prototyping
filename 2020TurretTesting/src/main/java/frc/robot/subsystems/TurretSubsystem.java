@@ -12,6 +12,23 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj.RobotController;
+
+import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
+
+import static edu.wpi.first.units.Units.Volts;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+
+import static edu.wpi.first.units.Units.*;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -47,6 +64,85 @@ public class TurretSubsystem extends SubsystemBase {
   );
 
 private double simPosRad = 0.0;
+
+
+  // ---------------- SysId Characterization ----------------
+  // For turret we log angular position/velocity based on the *relative* sensor (seeded at boot).
+  // We also command voltage by converting to percent output, since Talon SRX (Phoenix 5) is percent-based.
+  private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Seconds).of(Constants.SysId.TURRET_RAMP_RATE_V_PER_S),
+          Volts.of(Constants.SysId.TURRET_STEP_V),
+          Seconds.of(Constants.SysId.TURRET_TIMEOUT_S)),
+      new SysIdRoutine.Mechanism(
+          this::sysIdVoltageDrive,
+          this::sysIdLog,
+          this,
+          "turret"));
+
+  /**
+   * Drive callback for SysId: applies requested voltage.
+   * For TalonSRX (Phoenix 5), we convert to PercentOutput using current battery voltage.
+   */
+  private void sysIdVoltageDrive(Voltage volts) {
+    // Guard rail: never allow SysId unless explicitly enabled
+    if (!Constants.SysId.ENABLE_SYSID) {
+      stop();
+      return;
+    }
+
+    double battery = RobotController.getBatteryVoltage();
+    if (battery < 1.0) battery = 12.0; // defensive
+
+    // Convert volts -> duty cycle. Clamp to turret MAX_OUTPUT as an additional safety net.
+    double percent = volts.in(Volts) / battery;
+    percent = Math.max(-Constants.Turret.MAX_OUTPUT, Math.min(Constants.Turret.MAX_OUTPUT, percent));
+
+    // Use your existing open-loop method so it respects limit guarding (if you built that)
+    setOpenLoopPercent(percent);
+  }
+
+  
+  /** SysId logging callback: log voltage + angular position/velocity in rotations and rotations/sec. */
+  private void sysIdLog(SysIdRoutineLog log) {
+    // If disabled, still log zeros (or just return). Returning is fine.
+    if (!Constants.SysId.ENABLE_SYSID) return;
+
+    log.motor("turret")
+        .voltage(Volts.of(getAppliedVolts()))
+        .angularPosition(Rotations.of(getPositionRot()))
+        .angularVelocity(RotationsPerSecond.of(getVelocityRps()));
+  }
+
+  // Helper used by sysIdLog
+  private double getAppliedVolts() {
+    // Phoenix 5: applied volts ~ percent * battery
+    return turret.getMotorOutputPercent() * RobotController.getBatteryVoltage();
+  }
+
+  // Position in rotations relative to "forward = 0"
+  private double getPositionRot() {
+    // You already have degrees via getAngleDeg(); convert to rotations
+    return getAngleDeg() / 360.0;
+  }
+
+  // Velocity in rotations/sec
+  private double getVelocityRps() {
+    // You already have deg/sec via getVelocityDegPerSec(); convert
+    return getVelocityDegPerSec() / 360.0;
+  }
+
+  // Factory commands (bind these to buttons/dashboard)
+  public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+    if (!Constants.SysId.ENABLE_SYSID) return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    return sysIdRoutine.quasistatic(direction);
+  }
+
+  public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+    if (!Constants.SysId.ENABLE_SYSID) return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    return sysIdRoutine.dynamic(direction);
+  }
+
 
 
   public TurretSubsystem() {

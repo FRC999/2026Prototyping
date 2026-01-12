@@ -112,7 +112,10 @@ public final class Constants {
     public static final double kP = 0.15;
     public static final double kI = 0.0;
     public static final double kD = 0.0;
-    public static final double kV = 0.12;
+    // Feedforward terms (populate from SysId)
+    public static final double kS = 0.0;   // volts
+    public static final double kV = 0.12;  // volts per (rot/s)
+    public static final double kA = 0.0;   // volts per (rot/s^2)
 
     public static final double READY_RPM_TOLERANCE = 75.0;
     public static final double READY_STABLE_TIME_S = 0.25;
@@ -126,6 +129,27 @@ public final class Constants {
     
     /** Sim inertia (computed below suggestion; placeholder). */
     public static final double SIM_J_KGM2 = 0.010; // placeholder
+  }
+
+
+  public static final class SysId {
+
+    /** 
+     * MUST be true to allow any characterization commands to run.
+     * Leave FALSE for normal driving.
+     */
+    public static final boolean ENABLE_SYSID = false;
+
+
+    // Keep these conservative for a turret + prototype shooter.
+    // You can increase once you verify everything is safe.
+    public static final double SHOOTER_RAMP_RATE_V_PER_S = 1.0;   // quasistatic
+    public static final double SHOOTER_STEP_V = 6.0;              // dynamic
+    public static final double SHOOTER_TIMEOUT_S = 8.0;
+
+    public static final double TURRET_RAMP_RATE_V_PER_S = 0.5;    // slower = safer
+    public static final double TURRET_STEP_V = 3.0;
+    public static final double TURRET_TIMEOUT_S = 6.0;
   }
 
   public static final class Logging {
@@ -148,6 +172,15 @@ public final class Constants {
 
     public static final int BTN_TURRET_GOTO_0_DEG = 8;
     public static final int BTN_TURRET_GOTO_45_DEG = 9;
+
+    // SysId (hold buttons). If you prefer, use the SmartDashboard buttons instead.
+    public static final int BTN_SYSID_SHOOTER_QUASI_FWD = 10;
+    public static final int BTN_SYSID_SHOOTER_QUASI_REV = 11;
+    public static final int BTN_SYSID_SHOOTER_DYN_FWD   = 12;
+    // Shooter dynamic reverse and turret SysId are exposed on SmartDashboard.
   }
+
+
+
 
 }

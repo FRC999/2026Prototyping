@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.Constants.SysId;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterRunPIDCommand;
 import frc.robot.commands.ShooterStopCommand;
@@ -15,10 +16,12 @@ import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -91,7 +94,37 @@ public class RobotContainer {
         .onTrue(new TurretGoToAngleCommand(turretSubsystem, 45.0, true))
         .onFalse(new TurretJogCommand(turretSubsystem, 0.0));
 
-    // Optional example: track a field point (tx,ty) while held
+    
+    if (SysId.ENABLE_SYSID) {
+      // ---------------- SysId bindings ----------------
+      // WPILib recommends "hold to run" so you can abort instantly if something looks wrong.
+      new JoystickButton(joystick, Constants.OI.BTN_SYSID_SHOOTER_QUASI_FWD)
+          .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward))
+          .onFalse(new ShooterStopCommand(shooterSubsystem));
+
+      new JoystickButton(joystick, Constants.OI.BTN_SYSID_SHOOTER_QUASI_REV)
+          .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse))
+          .onFalse(new ShooterStopCommand(shooterSubsystem));
+
+      new JoystickButton(joystick, Constants.OI.BTN_SYSID_SHOOTER_DYN_FWD)
+          .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward))
+          .onFalse(new ShooterStopCommand(shooterSubsystem));
+
+      // Expose the full set (including dynamic reverse + turret tests) on SmartDashboard as well.
+      SmartDashboard.putData("SysId/Shooter Dynamic Reverse",
+          shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+
+      SmartDashboard.putData("SysId/Turret Quasistatic Forward",
+          turretSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+      SmartDashboard.putData("SysId/Turret Quasistatic Reverse",
+          turretSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+      SmartDashboard.putData("SysId/Turret Dynamic Forward",
+          turretSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
+      SmartDashboard.putData("SysId/Turret Dynamic Reverse",
+          turretSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+      }
+
+// Optional example: track a field point (tx,ty) while held
     // new JoystickButton(joystick, 10)
     //     .onTrue(new TrackFieldPointCommand(turretSubsystem, driveSubsystem, 8.0, 4.0, true))
     //     .onFalse(new TurretJogCommand(turretSubsystem, 0.0));

@@ -10,6 +10,14 @@ import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.units.measure.Voltage;
+import static edu.wpi.first.units.Units.Volts;
+import static edu.wpi.first.units.Units.Seconds;
+
+
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import com.ctre.phoenix6.configs.Slot0Configs;
 
@@ -17,7 +25,6 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
@@ -93,7 +100,9 @@ public class ShooterSubsystem extends SubsystemBase {
       .withKP(Constants.Shooter.kP)
       .withKI(Constants.Shooter.kI)
       .withKD(Constants.Shooter.kD)
-      .withKV(Constants.Shooter.kV);
+      .withKS(Constants.Shooter.kS)
+      .withKV(Constants.Shooter.kV)
+      .withKA(Constants.Shooter.kA);
 
   TalonFXConfiguration cfg = new TalonFXConfiguration()
       .withMotorOutput(out)
@@ -102,6 +111,56 @@ public class ShooterSubsystem extends SubsystemBase {
 
   shooter.getConfigurator().apply(cfg);
 }
+
+
+  // ---------------- SysId Characterization ----------------
+  // SysId identifies feedforward terms (kS, kV, kA). It does NOT directly produce PID gains.
+  // We'll log in rotations and rotations/sec so the resulting kV has units of V per (rot/s),
+  // which maps cleanly to Phoenix 6 Slot0 kV when using Voltage-based requests.
+  private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Seconds).of(Constants.SysId.SHOOTER_RAMP_RATE_V_PER_S),
+          Volts.of(Constants.SysId.SHOOTER_STEP_V),
+          Seconds.of(Constants.SysId.SHOOTER_TIMEOUT_S)),
+      new SysIdRoutine.Mechanism(
+          this::sysIdVoltageDrive,
+          this::sysIdLog,
+          this,
+          "shooter"));
+
+  private void sysIdVoltageDrive(Voltage volts) {
+    // Use voltage control so the logged voltage matches the commanded voltage closely.
+    shooter.setControl(voltageOut.withOutput(volts.in(Volts)));
+  }
+
+  private void sysIdLog(SysIdRoutineLog log) {
+  log.motor("shooter")
+      .voltage(Volts.of(getAppliedVolts()))
+      // If these next two lines don’t compile due to unit names, tell me your WPILib version:
+      .angularPosition(edu.wpi.first.units.Units.Rotations.of(getPositionRot()))
+      .angularVelocity(edu.wpi.first.units.Units.RotationsPerSecond.of(getVelocityRps()));
+}
+
+private double getAppliedVolts() {
+  return shooter.getMotorVoltage().getValueAsDouble();
+}
+
+private double getPositionRot() {
+  return shooter.getPosition().getValueAsDouble();
+}
+
+private double getVelocityRps() {
+  return shooter.getVelocity().getValueAsDouble();
+}
+
+  public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+    return sysIdRoutine.quasistatic(direction);
+  }
+
+  public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+    return sysIdRoutine.dynamic(direction);
+  }
+
 
   // ---------------- Controls ----------------
 
@@ -270,30 +329,30 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   @Override
-public void simulationPeriodic() {
-  var sim = shooter.getSimState();
+  public void simulationPeriodic() {
+    var sim = shooter.getSimState();
 
-  double batteryV = RoboRioSim.getVInVoltage();
-  sim.setSupplyVoltage(batteryV);
+    double batteryV = RoboRioSim.getVInVoltage();
+    sim.setSupplyVoltage(batteryV);
 
-  // CTRE provides the motor voltage being applied; feed it into the physics sim
-  double motorVolts = sim.getMotorVoltage();
-  flywheelSim.setInputVoltage(motorVolts);
-  flywheelSim.update(0.02);
+    // CTRE provides the motor voltage being applied; feed it into the physics sim
+    double motorVolts = sim.getMotorVoltage();
+    flywheelSim.setInputVoltage(motorVolts);
+    flywheelSim.update(0.02);
 
-  // Convert flywheel state -> rotor state
-  double rotorRps = flywheelSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
+    // Convert flywheel state -> rotor state
+    double rotorRps = flywheelSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
 
-  // Integrate position ourselves (rotations)
-  simRotorPositionRot += rotorRps * 0.02;
+    // Integrate position ourselves (rotations)
+    simRotorPositionRot += rotorRps * 0.02;
 
-  sim.setRotorVelocity(rotorRps);
-  sim.setRawRotorPosition(simRotorPositionRot);
+    sim.setRotorVelocity(rotorRps);
+    sim.setRawRotorPosition(simRotorPositionRot);
 
-  // Battery sag
-  RoboRioSim.setVInVoltage(
-      BatterySim.calculateDefaultBatteryLoadedVoltage(flywheelSim.getCurrentDrawAmps())
-  );
-}
+    // Battery sag
+    RoboRioSim.setVInVoltage(
+        BatterySim.calculateDefaultBatteryLoadedVoltage(flywheelSim.getCurrentDrawAmps())
+    );
+  }
 
 }

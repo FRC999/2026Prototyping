@@ -104,8 +104,8 @@ public final class Constants {
       public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
-      public static final CANBus kCANBus = new CANBus("canivore1", "./logs/example.hoot"); // 2025
-      //public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2024 no canivore
+      //public static final CANBus kCANBus = new CANBus("canivore1", "./logs/example.hoot"); // 2025
+      public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2024 no canivore
 
       public static final Pigeon2Configuration pigeonConfigs = null;
       public static final Slot0Configs steerGains = new Slot0Configs()
@@ -225,7 +225,7 @@ public final class Constants {
 						7, // angleMotorID
 						7, // CanCoder Id
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						-0.33837890625 + 0.5 - 0.025391, // angleOffset of cancoder to mark zero-position
+						-0.33837890625 + 0.5 - 0.025391 - 0.5, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
@@ -236,7 +236,7 @@ public final class Constants {
 						1, // angleMotorID
 						1, // CanCoder Id
 						// 0.041015625, // angleOffset of cancoder to mark zero-position
-						-0.361328125 + 0.013, // angleOffset of cancoder to mark zero-position
+						-0.361328125 + 0.013 - 0.5, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
@@ -247,7 +247,7 @@ public final class Constants {
 						5, // angleMotorID
 						5, // CanCoder Id
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						0.742431640625 + 0.025391, // angleOffset of cancoder to mark zero-position
+						0.742431640625 + 0.025391 - 0.5, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
@@ -258,7 +258,7 @@ public final class Constants {
 						3, // CanCoder Id
 						// 0.326171875, // angleOffset of cancoder to mark zero-position
 						//0.0576171875, // angleOffset of cancoder to mark zero-position
-						-0.298828125, // angleOffset of cancoder to mark zero-position
+						-0.298828125 -0.5, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder

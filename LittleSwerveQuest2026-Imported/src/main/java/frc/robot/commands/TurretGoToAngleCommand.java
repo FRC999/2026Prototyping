@@ -22,6 +22,11 @@ public class TurretGoToAngleCommand extends Command {
   }
 
   @Override
+  public void end(boolean interrupted) {
+    System.out.println("Turret to Angle " + targetDeg + " " + interrupted + " with tolerance " + toleranceDeg);
+  }
+
+  @Override
   public boolean isFinished() {
     return turret.atAngleDeg(targetDeg, toleranceDeg);
   }

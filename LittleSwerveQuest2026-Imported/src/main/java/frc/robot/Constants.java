@@ -292,7 +292,8 @@ public final class Constants {
        * Control direction conventions: CCW is positive. Start with false; adjust as
        * needed on-robot.
        */
-      public static final boolean MOTOR_INVERTED = false;
+      public static final boolean MOTOR_INVERTED = true;
+      public static final boolean SENSOR_PHASE_INVERTED = true; //Encoder Inversion
 
       /** Output safety limits. */
       public static final double MAX_DUTY_CYCLE = 0.8;
@@ -300,10 +301,10 @@ public final class Constants {
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
 
       /** Placeholder gains (Position control). Tune after SysId. */
-      public static final double kP = 40.0;
-      public static final double kI = 0.0;
+      public static final double kP = 100.0;
+      public static final double kI = 40.0;
       public static final double kD = 2.0;
-      public static final double kS = 0.0;
+      public static final double kS = 10.0;
       public static final double kV = 0.0;
       public static final double kA = 0.0;
 

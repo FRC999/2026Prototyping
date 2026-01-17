@@ -51,9 +51,8 @@ import frc.robot.Constants;
 /** Turret prototype (Talon FXS + CTRE Mag encoder). */
 public class TurretSubsystem extends SubsystemBase {
 
-  private final TalonFXS turret = new TalonFXS(
-      Constants.OperatorConstants.Turret.CAN_ID,
-      Constants.OperatorConstants.Turret.CANBUS_NAME);
+  private final TalonFXS turret =
+      new TalonFXS(Constants.OperatorConstants.Turret.CAN_ID, Constants.OperatorConstants.Turret.CANBUS_NAME);
 
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
   private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
@@ -64,7 +63,7 @@ public class TurretSubsystem extends SubsystemBase {
   private final StatusSignal<AngularVelocity> velocitySig = turret.getVelocity();
   private final StatusSignal<Voltage> motorVoltageSig = turret.getMotorVoltage();
 
-  // This one is the troublemaker if you refresh() it every 20ms.
+  // PWM absolute (don’t refresh every loop)
   private final StatusSignal<Angle> rawPwmPosSig = turret.getRawPulseWidthPosition();
 
   private boolean useMotionMagic = true;
@@ -82,24 +81,25 @@ public class TurretSubsystem extends SubsystemBase {
   private static final double ABS_REFRESH_PERIOD_S = 0.20;
 
   // Modern WPILib FlywheelSim constructor (plant + motor model)
-  private final FlywheelSim turretSim = new FlywheelSim(
-      LinearSystemId.createFlywheelSystem(
-          DCMotor.getVex775Pro(1),
-          Constants.OperatorConstants.Turret.SIM_GEAR_RATIO,
-          Constants.OperatorConstants.Turret.SIM_TURRET_J_KGM2),
-      DCMotor.getVex775Pro(1));
+  private final FlywheelSim turretSim =
+      new FlywheelSim(
+          LinearSystemId.createFlywheelSystem(
+              DCMotor.getVex775Pro(1),
+              Constants.OperatorConstants.Turret.SIM_GEAR_RATIO,
+              Constants.OperatorConstants.Turret.SIM_TURRET_J_KGM2),
+          DCMotor.getVex775Pro(1));
 
   // ---------------- SysId Characterization ----------------
-  private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
-      new SysIdRoutine.Config(
-          Volts.per(Seconds).of(Constants.OperatorConstants.SysId.TURRET_RAMP_RATE_V_PER_S),
-          Volts.of(Constants.OperatorConstants.SysId.TURRET_STEP_V),
-          Seconds.of(Constants.OperatorConstants.SysId.TURRET_TIMEOUT_S)),
-      new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "turret"));
+  private final SysIdRoutine sysIdRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              Volts.per(Seconds).of(Constants.OperatorConstants.SysId.TURRET_RAMP_RATE_V_PER_S),
+              Volts.of(Constants.OperatorConstants.SysId.TURRET_STEP_V),
+              Seconds.of(Constants.OperatorConstants.SysId.TURRET_TIMEOUT_S)),
+          new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "turret"));
 
   /**
-   * Runtime gating for SysId. Requires BOTH compile-time enable and dashboard
-   * enable.
+   * Runtime gating for SysId. Requires BOTH compile-time enable and dashboard enable.
    * This prevents accidental characterization runs.
    */
   private boolean isSysIdEnabled() {
@@ -109,131 +109,157 @@ public class TurretSubsystem extends SubsystemBase {
 
   public TurretSubsystem() {
     configureHardware();
-
-    // Configure signal update rates BEFORE we start calling refresh() in periodic.
     configureStatusSignals();
-
-    // Seed relative from absolute ONCE at boot.
     seedRelativeFromAbsoluteAtBoot();
-
-    // After boot seeding, we still keep PWM visible, but only refreshed slowly.
-    // (The slow refresh is handled by periodic()).
   }
 
   private void configureStatusSignals() {
     // Fast signals (closed-loop control & dashboard)
-    positionSig.setUpdateFrequency(100.0); // Hz
+    positionSig.setUpdateFrequency(100.0);
     velocitySig.setUpdateFrequency(100.0);
     motorVoltageSig.setUpdateFrequency(50.0);
 
-    // Raw PWM absolute is only needed for boot seeding + occasional debugging.
+    // Raw PWM absolute: only needed for boot seeding + occasional debugging
     rawPwmPosSig.setUpdateFrequency(10.0);
 
-    // Reduce CAN spam by only sending what we asked for.
     turret.optimizeBusUtilization();
   }
 
+  private SensorPhaseValue sensorPhase() {
+    // If SENSOR_PHASE_INVERTED is true, flip sensor direction.
+    return Constants.OperatorConstants.Turret.SENSOR_PHASE_INVERTED
+        ? SensorPhaseValue.Opposed
+        : SensorPhaseValue.Aligned;
+  }
+
+  private InvertedValue motorInvertedValue() {
+    // Your convention: CCW is positive.
+    // If MOTOR_INVERTED is true, swap which physical direction is "positive".
+    return Constants.OperatorConstants.Turret.MOTOR_INVERTED
+        ? InvertedValue.Clockwise_Positive
+        : InvertedValue.CounterClockwise_Positive;
+  }
+
   private void configureHardware() {
-    MotorOutputConfigs out = new MotorOutputConfigs()
-        .withNeutralMode(NeutralModeValue.Brake)
-        .withInverted(
-            Constants.OperatorConstants.Turret.MOTOR_INVERTED
-                ? InvertedValue.Clockwise_Positive
-                : InvertedValue.CounterClockwise_Positive);
+    // --- Motor output ---
+    MotorOutputConfigs out =
+        new MotorOutputConfigs()
+            .withNeutralMode(NeutralModeValue.Brake)
+            .withInverted(motorInvertedValue());
 
-    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
-        .withSupplyCurrentLimitEnable(true)
-        .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
-        .withStatorCurrentLimitEnable(true)
-        .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);
+    // --- Brushed commutation (IMPORTANT if you factory-reset) ---
+    CommutationConfigs commutation =
+        new CommutationConfigs()
+            .withMotorArrangement(MotorArrangementValue.Brushed_DC)
+            .withBrushedMotorWiring(BrushedMotorWiringValue.Leads_A_and_B);
 
-    // Closed-loop: ensure continuous wrap is OFF (we enforce umbilical safe limits)
+    // --- Current limits ---
+    CurrentLimitsConfigs limits =
+        new CurrentLimitsConfigs()
+            .withSupplyCurrentLimitEnable(true)
+            .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
+            .withStatorCurrentLimitEnable(true)
+            .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);
+
+    // --- Closed-loop general ---
+    // Continuous wrap OFF because we enforce umbilical safe limits.
     ClosedLoopGeneralConfigs clGen = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
 
-    MotionMagicConfigs mm = new MotionMagicConfigs()
-        .withMotionMagicCruiseVelocity(Constants.OperatorConstants.Turret.MM_CRUISE_VEL_RPS)
-        .withMotionMagicAcceleration(Constants.OperatorConstants.Turret.MM_ACCEL_RPS2);
+    // --- Motion Magic ---
+    MotionMagicConfigs mm =
+        new MotionMagicConfigs()
+            .withMotionMagicCruiseVelocity(Constants.OperatorConstants.Turret.MM_CRUISE_VEL_RPS)
+            .withMotionMagicAcceleration(Constants.OperatorConstants.Turret.MM_ACCEL_RPS2);
 
-    // Use quadrature for control (multi-turn). CTRE Mag is 4096 edges per rotation.
-    ExternalFeedbackConfigs ext = new ExternalFeedbackConfigs()
-        .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.Quadrature)
-        .withQuadratureEdgesPerRotation(Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV)
-        .withSensorPhase(SensorPhaseValue.Aligned);
+    // --- External feedback: Quadrature for control (multi-turn) ---
+    ExternalFeedbackConfigs quadFeedback =
+        new ExternalFeedbackConfigs()
+            .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.Quadrature)
+            .withQuadratureEdgesPerRotation(Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV)
+            .withSensorPhase(sensorPhase());
 
-    Slot0Configs slot0 = new Slot0Configs()
-        .withKP(Constants.OperatorConstants.Turret.kP)
-        .withKI(Constants.OperatorConstants.Turret.kI)
-        .withKD(Constants.OperatorConstants.Turret.kD)
-        .withKS(Constants.OperatorConstants.Turret.kS)
-        .withKV(Constants.OperatorConstants.Turret.kV)
-        .withKA(Constants.OperatorConstants.Turret.kA);
+    // --- Slot0 gains (hardware closed-loop) ---
+    Slot0Configs slot0 =
+        new Slot0Configs()
+            .withKP(Constants.OperatorConstants.Turret.kP)
+            .withKI(Constants.OperatorConstants.Turret.kI)
+            .withKD(Constants.OperatorConstants.Turret.kD)
+            .withKS(Constants.OperatorConstants.Turret.kS)
+            .withKV(Constants.OperatorConstants.Turret.kV)
+            .withKA(Constants.OperatorConstants.Turret.kA);
 
-    // Software limits in rotations (relative, seeded so 0 = forward).
+    // --- Software limits in rotations (relative, seeded so 0 = forward) ---
     double minRot = Constants.OperatorConstants.Turret.MIN_ANGLE_DEG / 360.0;
     double maxRot = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG / 360.0;
-    SoftwareLimitSwitchConfigs soft = new SoftwareLimitSwitchConfigs()
-        .withReverseSoftLimitEnable(true)
-        .withReverseSoftLimitThreshold(minRot)
-        .withForwardSoftLimitEnable(true)
-        .withForwardSoftLimitThreshold(maxRot);
+    SoftwareLimitSwitchConfigs soft =
+        new SoftwareLimitSwitchConfigs()
+            .withReverseSoftLimitEnable(true)
+            .withReverseSoftLimitThreshold(minRot)
+            .withForwardSoftLimitEnable(true)
+            .withForwardSoftLimitThreshold(maxRot);
 
-    CommutationConfigs commutation = new CommutationConfigs()
-        .withMotorArrangement(MotorArrangementValue.Brushed_DC)
-        .withBrushedMotorWiring(BrushedMotorWiringValue.Leads_A_and_B);
-
-
-    TalonFXSConfiguration cfg = new TalonFXSConfiguration()
-        .withMotorOutput(out)
-        .withCurrentLimits(limits)
-        .withClosedLoopGeneral(clGen)
-        .withExternalFeedback(ext)
-        .withSoftwareLimitSwitch(soft)
-        .withMotionMagic(mm)
-        .withSlot0(slot0)
-        .withCommutation(commutation);
+    TalonFXSConfiguration cfg =
+        new TalonFXSConfiguration()
+            .withMotorOutput(out)
+            .withCommutation(commutation)
+            .withCurrentLimits(limits)
+            .withClosedLoopGeneral(clGen)
+            .withExternalFeedback(quadFeedback)
+            .withSoftwareLimitSwitch(soft)
+            .withMotionMagic(mm)
+            .withSlot0(slot0);
 
     turret.getConfigurator().apply(cfg);
   }
 
   /**
-   * Seeds the multi-turn (quadrature) relative position so that 0 degrees means
-   * "forward".
+   * Seeds the multi-turn (quadrature) relative position so that 0 degrees means "forward".
    * Assumes at boot the turret is within +/- 180 degrees of forward.
+   *
+   * IMPORTANT: when switching between PulseWidth and Quadrature for seeding,
+   * apply ONLY ExternalFeedbackConfigs (NOT a new TalonFXSConfiguration), or you
+   * will overwrite commutation/motor arrangement back to defaults.
    */
-private void seedRelativeFromAbsoluteAtBoot() {
-  // Temporarily switch to PulseWidth to read absolute.
-  ExternalFeedbackConfigs pwm = new ExternalFeedbackConfigs()
-      .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.PulseWidth)
-      .withAbsoluteSensorDiscontinuityPoint(1.0)
-      .withSensorPhase(SensorPhaseValue.Aligned);
+  private void seedRelativeFromAbsoluteAtBoot() {
+    // Temporarily use PulseWidth to read absolute.
+    ExternalFeedbackConfigs pwm =
+        new ExternalFeedbackConfigs()
+            .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.PulseWidth)
+            .withAbsoluteSensorDiscontinuityPoint(1.0)
+            .withSensorPhase(sensorPhase());
 
-  //Apply ONLY this config (do NOT wrap in a new TalonFXSConfiguration)
-  turret.getConfigurator().apply(pwm);
+    // Apply ONLY this config (preserves brushed commutation + other configs)
+    turret.getConfigurator().apply(pwm);
 
-  int absTicks = readAbsoluteTicksFresh(0.30);
-  lastAbsTicks = absTicks;
-  lastAbsRefreshTime = Timer.getFPGATimestamp();
+    int absTicks = readAbsoluteTicksFresh(0.30);
+    lastAbsTicks = absTicks;
+    lastAbsRefreshTime = Timer.getFPGATimestamp();
 
-  int deltaTicks = wrapToHalfRev(
-      absTicks - Constants.OperatorConstants.Turret.ABS_FORWARD_TICKS,
-      Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV);
-  double deltaRot = (double) deltaTicks / (double) Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
+    int deltaTicks =
+        wrapToHalfRev(
+            absTicks - Constants.OperatorConstants.Turret.ABS_FORWARD_TICKS,
+            Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV);
 
-  // Restore quadrature config and set relative position
-  ExternalFeedbackConfigs quad = new ExternalFeedbackConfigs()
-      .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.Quadrature)
-      .withQuadratureEdgesPerRotation(Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV)
-      .withSensorPhase(SensorPhaseValue.Aligned);
+    double deltaRot =
+        (double) deltaTicks / (double) Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
 
-  // ✅ Apply ONLY this config (preserves commutation)
-  turret.getConfigurator().apply(quad);
+    // Restore quadrature feedback for control.
+    ExternalFeedbackConfigs quad =
+        new ExternalFeedbackConfigs()
+            .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.Quadrature)
+            .withQuadratureEdgesPerRotation(Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV)
+            .withSensorPhase(sensorPhase());
 
-  turret.setPosition(deltaRot);
-}
+    // Apply ONLY this config (preserves commutation)
+    turret.getConfigurator().apply(quad);
+
+    // Set relative position so that 0 rotations corresponds to ABS_FORWARD_TICKS.
+    turret.setPosition(deltaRot);
+  }
 
   /**
    * Attempts to read a fresh absolute PWM tick value, retrying briefly.
-   * This is used only during boot seeding.
+   * Used only during boot seeding.
    */
   private int readAbsoluteTicksFresh(double timeoutSec) {
     double start = Timer.getFPGATimestamp();
@@ -241,25 +267,19 @@ private void seedRelativeFromAbsoluteAtBoot() {
       rawPwmPosSig.refresh();
       StatusCode status = rawPwmPosSig.getStatus();
       if (status == StatusCode.OK) {
-
         return angleRotToAbsTicks(rawPwmPosSig.getValueAsDouble());
       }
-      // small delay so we don't hammer CAN
       Timer.delay(0.01);
     }
-
-    // If we couldn't get fresh data, fall back to the last cached ticks (0 on first
-    // boot)
-    return lastAbsTicks;
+    return lastAbsTicks; // fallback
   }
 
-  /** Converts a rotations value (0..1..wrapped) to [0..4095] ticks. */
+  /** Converts a rotations value (wrapped) to [0..4095] ticks. */
   private int angleRotToAbsTicks(double rot) {
-    rot = rot - Math.floor(rot); // wrap into [0,1)
+    rot = rot - Math.floor(rot); // [0,1)
     int ticks = (int) Math.round(rot * Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV);
     ticks %= Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
-    if (ticks < 0)
-      ticks += Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
+    if (ticks < 0) ticks += Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
     return ticks;
   }
 
@@ -269,19 +289,19 @@ private void seedRelativeFromAbsoluteAtBoot() {
    */
   private void updateAbsoluteTicksOccasionally() {
     double now = Timer.getFPGATimestamp();
-    if (lastAbsRefreshTime >= 0 && (now - lastAbsRefreshTime) < ABS_REFRESH_PERIOD_S)
-      return;
+    if (lastAbsRefreshTime >= 0 && (now - lastAbsRefreshTime) < ABS_REFRESH_PERIOD_S) return;
 
     rawPwmPosSig.refresh();
     StatusCode status = rawPwmPosSig.getStatus();
+
     if (status == StatusCode.OK) {
       lastAbsTicks = angleRotToAbsTicks(rawPwmPosSig.getValueAsDouble());
       lastAbsRefreshTime = now;
+      SmartDashboard.putString("Turret/AbsPwmStatus", "OK");
     } else {
-      // Do not spam errors here; just keep lastAbsTicks.
-      // If you want visibility, you can publish status code:
+      // Keep lastAbsTicks; don’t hammer CAN or spam console.
       SmartDashboard.putString("Turret/AbsPwmStatus", status.toString());
-      lastAbsRefreshTime = now; // still advance so we don't hammer CAN
+      lastAbsRefreshTime = now;
     }
   }
 
@@ -294,12 +314,12 @@ private void seedRelativeFromAbsoluteAtBoot() {
 
   /** Relative position (rotations) where 0 = forward. */
   public double getPositionRot() {
-    return positionSig.getValueAsDouble(); // rotations (assumes refreshed in periodic)
+    return positionSig.getValueAsDouble(); // rotations (refreshed in periodic)
   }
 
   /** Relative velocity (rotations/sec). */
   public double getVelocityRps() {
-    return velocitySig.getValueAsDouble(); // rotations/sec (assumes refreshed in periodic)
+    return velocitySig.getValueAsDouble(); // rotations/sec (refreshed in periodic)
   }
 
   public double getVelocityDegPerSec() {
@@ -307,7 +327,7 @@ private void seedRelativeFromAbsoluteAtBoot() {
   }
 
   public double getAppliedVolts() {
-    return motorVoltageSig.getValueAsDouble(); // volts (assumes refreshed in periodic)
+    return motorVoltageSig.getValueAsDouble(); // volts (refreshed in periodic)
   }
 
   /** Cached absolute PWM ticks (0-4095). Refreshes slowly in periodic(). */
@@ -320,15 +340,13 @@ private void seedRelativeFromAbsoluteAtBoot() {
     useMotionMagic = enable;
   }
 
-  /**
-   * Open-loop manual control with safety clamp and software limits active on
-   * device.
-   */
+  /** Open-loop manual control with safety clamp and software limits active on device. */
   public void setDutyCycle(double duty) {
-    duty = clamp(
-        duty,
-        -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
-        Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
+    duty =
+        clamp(
+            duty,
+            -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
+            Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
     turret.setControl(dutyRequest.withOutput(duty));
   }
 
@@ -336,15 +354,13 @@ private void seedRelativeFromAbsoluteAtBoot() {
     turret.stopMotor();
   }
 
-  /**
-   * Go to desired turret angle relative to robot forward (device limits will
-   * prevent exceeding).
-   */
+  /** Go to desired turret angle relative to robot forward (device limits will prevent exceeding). */
   public void goToAngleDeg(double targetDeg) {
-    targetDeg = clamp(
-        targetDeg,
-        Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
-        Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
+    targetDeg =
+        clamp(
+            targetDeg,
+            Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
+            Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
     double targetRot = targetDeg / 360.0;
 
     if (useMotionMagic) {
@@ -361,14 +377,12 @@ private void seedRelativeFromAbsoluteAtBoot() {
 
   /** SysId factory commands (bind to buttons/dashboard). */
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled())
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    if (!isSysIdEnabled()) return new edu.wpi.first.wpilibj2.command.InstantCommand();
     return sysIdRoutine.quasistatic(direction);
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled())
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    if (!isSysIdEnabled()) return new edu.wpi.first.wpilibj2.command.InstantCommand();
     return sysIdRoutine.dynamic(direction);
   }
 
@@ -380,16 +394,16 @@ private void seedRelativeFromAbsoluteAtBoot() {
     }
     double v = volts.in(Volts);
     double duty = v / RobotController.getBatteryVoltage();
-    duty = clamp(
-        duty,
-        -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
-        Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
+    duty =
+        clamp(
+            duty,
+            -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
+            Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
     setDutyCycle(duty);
   }
 
   private void sysIdLog(SysIdRoutineLog log) {
-    if (!isSysIdEnabled())
-      return;
+    if (!isSysIdEnabled()) return;
     log.motor("turret")
         .voltage(Volts.of(getAppliedVolts()))
         .angularPosition(Rotations.of(getPositionRot()))
@@ -398,7 +412,7 @@ private void seedRelativeFromAbsoluteAtBoot() {
 
   @Override
   public void periodic() {
-    // Refresh the fast signals in one CAN batch
+    // Refresh fast signals in one CAN batch
     BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
 
     // Refresh absolute PWM slowly (prevents -1003 spam)
@@ -413,14 +427,13 @@ private void seedRelativeFromAbsoluteAtBoot() {
 
   @Override
   public void simulationPeriodic() {
-    if (!isSim)
-      return;
+    if (!isSim) return;
 
     final double dt = 0.02;
 
     var simState = turret.getSimState();
 
-    // Keep CTRE sim supplied with the roboRIO voltage
+    // Keep CTRE sim supplied with roboRIO voltage
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
 
     // Drive physics sim using the voltage the controller is applying
@@ -454,10 +467,8 @@ private void seedRelativeFromAbsoluteAtBoot() {
   private static int wrapToHalfRev(int ticks, int modulus) {
     int half = modulus / 2;
     int t = ticks % modulus;
-    if (t > half)
-      t -= modulus;
-    if (t < -half)
-      t += modulus;
+    if (t > half) t -= modulus;
+    if (t < -half) t += modulus;
     return t;
   }
 }

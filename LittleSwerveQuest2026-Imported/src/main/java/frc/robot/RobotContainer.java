@@ -277,7 +277,7 @@ public class RobotContainer {
     new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
 
     // Turret: button 4 = zero to forward (0 deg) and finish when reached.
-    new JoystickButton(turretStick, 4).onTrue(new TurretZeroCommand(turretSubsystem, 1.0));
+    new JoystickButton(turretStick, 4).onTrue(new TurretZeroCommand(turretSubsystem, 0.5));
 
     // SysId (gated by Constants.SysId.ENABLE_SYSID):
     // Turret: button 7/8 quasistatic fwd/rev, 9/10 dynamic fwd/rev.

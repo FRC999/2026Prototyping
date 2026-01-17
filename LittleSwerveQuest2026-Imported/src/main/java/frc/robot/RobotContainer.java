@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,6 +25,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
@@ -36,11 +38,17 @@ import frc.robot.commands.BLUE_ThreeMeterForwardPPCommand;
 import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.RED_OneMeterForwardTurnPPCommand;
 import frc.robot.commands.ReturnTestPPCommand;
+import frc.robot.commands.ShooterAdjustRpmCommand;
+import frc.robot.commands.ShooterEnableCommand;
 import frc.robot.commands.StopRobot;
+import frc.robot.commands.TurretJogCommand;
+import frc.robot.commands.TurretZeroCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
+import frc.robot.subsystems.TurretSubsystem;
 
 public class RobotContainer {
 
@@ -51,6 +59,7 @@ public class RobotContainer {
   // Use open-loop control for drive motors
   private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
+  private final Joystick turretStick =  new Joystick(0);
   private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
@@ -61,11 +70,18 @@ public class RobotContainer {
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
+  // Turret + shooter subsystems
+  public static final TurretSubsystem turretSubsystem = new TurretSubsystem();
+  public static final ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
+
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
   private static String lastAutoPathPreview = "";
 
   public RobotContainer() {
+    // Runtime gate for SysId routines. Must be enabled intentionally.
+    SmartDashboard.setDefaultBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
+
     configureBindings();
     testTrajectory();
     setYaws();
@@ -206,6 +222,8 @@ public class RobotContainer {
 
     driveSubsystem.registerTelemetry(logger::telemeterize);
 
+    testTurretShooter();
+
     // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
     // .onFalse(stopRobotCommand());
   }
@@ -241,6 +259,36 @@ public class RobotContainer {
     new JoystickButton(xboxDriveController, 5)
         .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
         .onFalse(new StopRobot());
+  }
+
+  private void testTurretShooter() {
+     // ---------------- Turret + Shooter prototype bindings (Joystick port 0) ----------------
+    // Shooter: button 3 = run shooter (at current target, or DEFAULT_RPM). Release stops.
+    new JoystickButton(turretStick, 3).whileTrue(new ShooterEnableCommand(shooterSubsystem));
+
+    // Shooter: button 1/2 adjust RPM setpoint by +/- RPM_STEP.
+    new JoystickButton(turretStick, 1)
+        .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, Constants.OperatorConstants.Shooter.RPM_STEP));
+    new JoystickButton(turretStick, 2)
+        .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, -Constants.OperatorConstants.Shooter.RPM_STEP));
+
+    // Turret: button 5/6 jog left/right with a gentle duty cycle; release stops.
+    new JoystickButton(turretStick, 5).whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
+    new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
+
+    // Turret: button 4 = zero to forward (0 deg) and finish when reached.
+    new JoystickButton(turretStick, 4).onTrue(new TurretZeroCommand(turretSubsystem, 1.0));
+
+    // SysId (gated by Constants.SysId.ENABLE_SYSID):
+    // Turret: button 7/8 quasistatic fwd/rev, 9/10 dynamic fwd/rev.
+    new JoystickButton(turretStick, 7).whileTrue(turretSubsystem.sysIdQuasistatic(Direction.kForward));
+    new JoystickButton(turretStick, 8).whileTrue(turretSubsystem.sysIdQuasistatic(Direction.kReverse));
+    new JoystickButton(turretStick, 9).whileTrue(turretSubsystem.sysIdDynamic(Direction.kForward));
+    new JoystickButton(turretStick, 10).whileTrue(turretSubsystem.sysIdDynamic(Direction.kReverse));
+
+    // Shooter SysId: button 11/12 quasistatic fwd/rev (dynamic can be added if you reassign buttons).
+    new JoystickButton(turretStick, 11).whileTrue(shooterSubsystem.sysIdQuasistatic(Direction.kForward));
+    new JoystickButton(turretStick, 12).whileTrue(shooterSubsystem.sysIdQuasistatic(Direction.kReverse));
   }
 
   public void setYaws() {

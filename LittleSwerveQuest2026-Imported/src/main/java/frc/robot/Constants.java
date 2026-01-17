@@ -267,6 +267,109 @@ public final class Constants {
 
     }
 
+    /** Turret prototype (Talon FXS + CTRE Mag encoder via gadgeteer port). */
+    public static final class Turret {
+      public static final int CAN_ID = 21;
+
+      /** Use the same CAN bus as the drivetrain by default. */
+      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+
+      /** CTRE Mag absolute reference (PulseWidth 0-4095 equivalent). */
+      public static final int ABS_TICKS_PER_REV = 4096;
+      /** Absolute encoder tick value that corresponds to turret pointing forward. */
+      public static final int ABS_FORWARD_TICKS = 3659;
+
+      /** Mechanical safe range relative to forward (degrees). */
+      public static final double MIN_ANGLE_DEG = -190.0;
+      public static final double MAX_ANGLE_DEG = 190.0;
+      /**
+       * When within this margin of a limit, prefer turning the other direction when
+       * possible.
+       */
+      public static final double LIMIT_MARGIN_DEG = 10.0;
+
+      /**
+       * Control direction conventions: CCW is positive. Start with false; adjust as
+       * needed on-robot.
+       */
+      public static final boolean MOTOR_INVERTED = false;
+
+      /** Output safety limits. */
+      public static final double MAX_DUTY_CYCLE = 0.8;
+      public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
+      public static final double STATOR_CURRENT_LIMIT_A = 40.0;
+
+      /** Placeholder gains (Position control). Tune after SysId. */
+      public static final double kP = 40.0;
+      public static final double kI = 0.0;
+      public static final double kD = 2.0;
+      public static final double kS = 0.0;
+      public static final double kV = 0.0;
+      public static final double kA = 0.0;
+
+      /** MotionMagic placeholders (rotations-based). */
+      public static final double MM_CRUISE_VEL_RPS = 1.0;
+      public static final double MM_ACCEL_RPS2 = 2.0;
+
+      /** Simulation placeholders. */
+      public static final double SIM_GEAR_RATIO = 1.0;
+      public static final double SIM_TURRET_J_KGM2 = 0.02;
+    }
+
+    /** Shooter prototype (Kraken X60 on TalonFX, Phoenix 6). */
+    public static final class Shooter {
+      public static final int CAN_ID = 20;
+      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+
+      /** Shooter expels ball on negative output, so invert motor. */
+      public static final boolean MOTOR_INVERTED = true;
+      public static final boolean NEUTRAL_COAST = true;
+
+      public static final double MAX_DUTY_CYCLE = 0.8;
+      public static final double SUPPLY_CURRENT_LIMIT_A = 60.0;
+      public static final double STATOR_CURRENT_LIMIT_A = 60.0;
+
+      /** Velocity control gains (placeholders). */
+      public static final double kP = 0.15;
+      public static final double kI = 0.0;
+      public static final double kD = 0.0;
+      public static final double kS = 0.0;
+      public static final double kV = 0.0;
+      public static final double kA = 0.0;
+
+      /** Setpoint logic. */
+      public static final double DEFAULT_RPM = 3000.0;
+      public static final double RPM_STEP = 10.0;
+      public static final double READY_TOLERANCE_RPM = 50.0;
+      public static final double READY_MIN_TIME_S = 0.20;
+      public static final double DIP_DETECT_DROP_RPM = 250.0;
+
+      /** Simulation placeholders (combined wheel+flywheel inertia). */
+      /** Simulation: motor rotations / wheel rotations. 1.0 for your 1:1 belt. */
+      public static final double SIM_GEAR_RATIO = 1.0;
+      public static final double SIM_J_KGM2 = 0.02;
+    }
+
+    /** SysId gating + default parameters. */
+    public static final class SysId {
+      /** Safety gate: characterization only runs if true. */
+      public static final boolean ENABLE_SYSID = false;
+
+      /**
+       * Runtime gate (SmartDashboard boolean). Both this and ENABLE_SYSID must be
+       * true.
+       */
+      public static final String SYSID_DASH_ENABLE_KEY = "SysId/Enable";
+
+      public static final double TURRET_RAMP_RATE_V_PER_S = 1.0;
+      public static final double TURRET_STEP_V = 4.0;
+      public static final double TURRET_TIMEOUT_S = 10.0;
+
+      public static final double SHOOTER_RAMP_RATE_V_PER_S = 1.0;
+      public static final double SHOOTER_STEP_V = 4.0;
+      public static final double SHOOTER_TIMEOUT_S = 10.0;
+    }
+
   }
   
 

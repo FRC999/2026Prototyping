@@ -16,6 +16,7 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
@@ -91,6 +92,9 @@ public final class Constants {
     /** Swerve-wide constants and module mappings */
     public static final class SwerveConstants {
 
+      public static final Distance kXPos = Inches.of(11.75);
+      public static final Distance kYPos = Inches.of(11.75);
+
       public static final double CHASSIS_POSE_HISTORY_TIME = 0.6; //seconds
 
       public static final boolean CTR_ODOMETRY_UPDATE_FROM_QUEST = true;
@@ -105,47 +109,47 @@ public final class Constants {
 
       public static final Pigeon2Configuration pigeonConfigs = null;
       public static final Slot0Configs steerGains = new Slot0Configs()
-          .withKP(100).withKI(0).withKD(0.5)
-          .withKS(0.1).withKV(2.66).withKA(0)
+          .withKP(40).withKI(0).withKD(0.5)
+          .withKS(0.1).withKV(0.58).withKA(0)
           .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
       public static final Slot0Configs driveGains = new Slot0Configs()
           .withKP(0.1).withKI(0).withKD(0)
-          .withKS(0).withKV(0.124);
-      public static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration()
+          .withKS(0).withKV(0.122);
+      public static final TalonFXSConfiguration steerInitialConfigs = new TalonFXSConfiguration()
           .withCurrentLimits(
               new CurrentLimitsConfigs()
                   // Swerve azimuth does not require much torque output, so we can set a
                   // relatively low
                   // stator current limit to help avoid brownouts without impacting performance.
-                  .withStatorCurrentLimit(Amps.of(60))
+                  .withStatorCurrentLimit(Amps.of(40))
                   .withStatorCurrentLimitEnable(true));
-      public static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
+      public static final TalonFXSConfiguration driveInitialConfigs = new TalonFXSConfiguration();
       public static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
 
       // Added from original TunerConstants (auto-merged):
 
       // Auto-merged constant declarations from original TunerConstants:
-      public static final double kCoupleRatio = 3.0;
+      public static final double kCoupleRatio = 2.8333333333333335;
       public static final ClosedLoopOutputType kDriveClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
-      public static final double kDriveGearRatio =  5.142857142857142*(5.02/4.93)*(3.03/3.1);
+      public static final double kDriveGearRatio =  6.538461538461539;
       public static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
-      public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFX_Integrated;
+      public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFXS_NEO_JST;
       
-      public static final int kPigeonId = 40; // 2025
+      public static final int kPigeonId = 15; // 
       //public static final int kPigeonId = 15; // 2024
       
-      public static final Current kSlipCurrent = Amps.of(120.0);
-      public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.21);
+      public static final Current kSlipCurrent = Amps.of(80.0);
+      public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(4.78);
       public static final ClosedLoopOutputType kSteerClosedLoopOutput = ClosedLoopOutputType.Voltage;
-      public static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
+      public static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.TalonFXS_PulseWidth;
       public static final Voltage kSteerFrictionVoltage = Volts.of(0.2);
-      public static final double kSteerGearRatio = 12.8;
+      public static final double kSteerGearRatio = 15.42857142857143;
       public static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.01);
-      public static final SteerMotorArrangement kSteerMotorType = SteerMotorArrangement.TalonFX_Integrated;
+      public static final SteerMotorArrangement kSteerMotorType = SteerMotorArrangement.TalonFXS_Brushed_AB;
       public static final Distance kWheelRadius = Inches.of(2);
 
-      public static SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> ConstantCreator = new SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>()
+      public static SwerveModuleConstantsFactory<TalonFXSConfiguration, TalonFXSConfiguration, CANcoderConfiguration> ConstantCreator = new SwerveModuleConstantsFactory<TalonFXSConfiguration, TalonFXSConfiguration, CANcoderConfiguration>()
           .withDriveMotorGearRatio(kDriveGearRatio)
           .withSteerMotorGearRatio(kSteerGearRatio)
           .withCouplingGearRatio(kCoupleRatio)
@@ -217,45 +221,45 @@ public final class Constants {
           // 2025 Constants
           
           public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
-						3, // driveMotorID
-						4, // angleMotorID
-						31, // CanCoder Id
+						8, // driveMotorID
+						7, // angleMotorID
+						7, // CanCoder Id
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						0.022582890625, // angleOffset of cancoder to mark zero-position
+						-0.33837890625 + 0.5 - 0.025391, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
 				);
        
         public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
-						1, // driveMotorID
-						2, // angleMotorID
-						30, // CanCoder Id
+						2, // driveMotorID
+						1, // angleMotorID
+						1, // CanCoder Id
 						// 0.041015625, // angleOffset of cancoder to mark zero-position
-						-0.3797604921875, // angleOffset of cancoder to mark zero-position
-						true, // Inversion for drive motor
+						-0.361328125 + 0.013, // angleOffset of cancoder to mark zero-position
+						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
 				);
 
         public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
-						7, // driveMotorID
-						8, // angleMotorID
-						33, // CanCoder Id
+						6, // driveMotorID
+						5, // angleMotorID
+						5, // CanCoder Id
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						0.421386796875, // angleOffset of cancoder to mark zero-position
+						0.742431640625 + 0.025391, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
 				);
         public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
-						5, // driveMotorID
-						6, // angleMotorID
-						32, // CanCoder Id
+						4, // driveMotorID
+						3, // angleMotorID
+						3, // CanCoder Id
 						// 0.326171875, // angleOffset of cancoder to mark zero-position
 						//0.0576171875, // angleOffset of cancoder to mark zero-position
-						0.088256890625, // angleOffset of cancoder to mark zero-position
-						true, // Inversion for drive motor
+						-0.298828125, // angleOffset of cancoder to mark zero-position
+						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
 				);
@@ -264,6 +268,7 @@ public final class Constants {
     }
 
   }
+  
 
   public static final class PathPlannerConstants{
     public static final boolean shouldFlipTrajectoryOnRed = true;

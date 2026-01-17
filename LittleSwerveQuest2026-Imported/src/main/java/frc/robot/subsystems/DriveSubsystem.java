@@ -13,6 +13,7 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.hardware.TalonFXS;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
@@ -47,7 +48,7 @@ import frc.robot.RobotContainer;
  * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
  * Subsystem so it can easily be used in command-based projects.
  */
-public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements Subsystem {
+public class DriveSubsystem extends SwerveDrivetrain<TalonFXS, TalonFXS, CANcoder> implements Subsystem {
     // Requests moved from RobotContainer:
 
     // Chassis Pose for the last 0.6 seconds
@@ -174,7 +175,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                         SwerveConstants.MOD0.driveMotorID(),
                         SwerveConstants.MOD0.cancoderID(),
                         Rotations.of(SwerveConstants.MOD0.angleOffset()),
-                        Inches.of(10.335), Inches.of(10.335),
+                        SwerveConstants.kXPos, SwerveConstants.kYPos,
                         SwerveConstants.MOD0.driveMotorInverted(),
                         SwerveConstants.MOD0.angleMotorInverted(),
                         SwerveConstants.MOD0.cancoderInverted()),
@@ -183,7 +184,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                         SwerveConstants.MOD1.driveMotorID(),
                         SwerveConstants.MOD1.cancoderID(),
                         Rotations.of(SwerveConstants.MOD1.angleOffset()),
-                        Inches.of(10.335), Inches.of(-10.335),
+                        SwerveConstants.kXPos, SwerveConstants.kYPos.times(-1),
                         SwerveConstants.MOD1.driveMotorInverted(),
                         SwerveConstants.MOD1.angleMotorInverted(),
                         SwerveConstants.MOD1.cancoderInverted()),
@@ -192,7 +193,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                         SwerveConstants.MOD2.driveMotorID(),
                         SwerveConstants.MOD2.cancoderID(),
                         Rotations.of(SwerveConstants.MOD2.angleOffset()),
-                        Inches.of(-10.335), Inches.of(10.335),
+                        SwerveConstants.kXPos.times(-1), SwerveConstants.kYPos,
                         SwerveConstants.MOD2.driveMotorInverted(),
                         SwerveConstants.MOD2.angleMotorInverted(),
                         SwerveConstants.MOD2.cancoderInverted()),
@@ -201,7 +202,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                         SwerveConstants.MOD3.driveMotorID(),
                         SwerveConstants.MOD3.cancoderID(),
                         Rotations.of(SwerveConstants.MOD3.angleOffset()),
-                        Inches.of(-10.335), Inches.of(-10.335),
+                        SwerveConstants.kXPos.times(-1), SwerveConstants.kYPos.times(-1),
                         SwerveConstants.MOD3.driveMotorInverted(),
                         SwerveConstants.MOD3.angleMotorInverted(),
                         SwerveConstants.MOD3.cancoderInverted()));
@@ -213,7 +214,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             SwerveDrivetrainConstants drivetrainConstants,
             SwerveModuleConstants<?, ?, ?>... modules) {
         super(
-                TalonFX::new, TalonFX::new, CANcoder::new,
+                TalonFXS::new, TalonFXS::new, CANcoder::new,
                 drivetrainConstants, modules);
         if (Utils.isSimulation()) {
             startSimThread();
@@ -243,7 +244,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             double odometryUpdateFrequency,
             SwerveModuleConstants<?, ?, ?>... modules) {
         super(
-                TalonFX::new, TalonFX::new, CANcoder::new,
+                TalonFXS::new, TalonFXS::new, CANcoder::new,
                 drivetrainConstants, odometryUpdateFrequency, modules);
         if (Utils.isSimulation()) {
             startSimThread();
@@ -286,7 +287,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             Matrix<N3, N1> visionStandardDeviation,
             SwerveModuleConstants<?, ?, ?>... modules) {
         super(
-                TalonFX::new, TalonFX::new, CANcoder::new,
+                TalonFXS::new, TalonFXS::new, CANcoder::new,
                 drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation,
                 modules);
         if (Utils.isSimulation()) {

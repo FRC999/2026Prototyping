@@ -1,19 +1,19 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.BaseStatusSignal;
+										  
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.CommutationConfigs;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.ExternalFeedbackConfigs;
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
+													
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
-import com.ctre.phoenix6.configs.SoftwareLimitSwitchConfigs;
+															
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.TalonFXSConfiguration;
+													   
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.MotionMagicVoltage;
+													 
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFXS;
 import com.ctre.phoenix6.signals.BrushedMotorWiringValue;
@@ -38,7 +38,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.AngularVelocity;
+												   
 import edu.wpi.first.units.measure.Voltage;
 
 import static edu.wpi.first.units.Units.Volts;
@@ -48,7 +48,22 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import frc.robot.Constants;
 
-/** Turret prototype (Talon FXS + CTRE Mag encoder). */
+/**
+ * Turret using ONLY an absolute PWM sensor (wraps every 360 deg) on a Talon FXS.
+ *
+ * <p>Key requirements (your rules):
+ * <ul>
+ *   <li>At boot, turret is within +/- 180 degrees of forward.</li>
+ *   <li>Turret must never go beyond +/- 340 degrees of forward (umbilical safety).</li>
+ *   <li>We track multi-turn angle in software (unwrap PWM) to enforce +/-340.</li>
+ *   <li>We use hardware PID (PositionVoltage) but we dynamically toggle ContinuousWrap:
+ *       <ul>
+ *         <li>Wrap ON for "short way" moves (|delta| <= 180 deg)</li>
+ *         <li>Wrap OFF when the short way would violate the +/-340 rule (forcing the long way)</li>
+ *       </ul>
+ *   </li>
+ * </ul>
+ */
 public class TurretSubsystem extends SubsystemBase {
 
   private final TalonFXS turret =
@@ -56,31 +71,50 @@ public class TurretSubsystem extends SubsystemBase {
 
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
   private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
-  private final MotionMagicVoltage motionMagicRequest = new MotionMagicVoltage(0).withSlot(0);
+																							  
 
-  // Typed cached signals (Phoenix 6 returns typed signals)
-  private final StatusSignal<Angle> positionSig = turret.getPosition();
-  private final StatusSignal<AngularVelocity> velocitySig = turret.getVelocity();
-  private final StatusSignal<Voltage> motorVoltageSig = turret.getMotorVoltage();
-
-  // PWM absolute (don’t refresh every loop)
+  // PWM absolute (0..1 rotations)
   private final StatusSignal<Angle> rawPwmPosSig = turret.getRawPulseWidthPosition();
-
-  private boolean useMotionMagic = true;
+																				 
+  private final StatusSignal<Voltage> motorVoltageSig = turret.getMotorVoltage();
 
   private final boolean isSim = RobotBase.isSimulation();
 
-  // Simulation position accumulator (rotations, continuous)
-  private double simPosRot = 0.0;
+  // If the absolute sensor only increases when turret turns CW, set +1 for CW-positive convention.
+  // If you ever re-install and it flips, change to -1.
+  private static final double ANGLE_SIGN = -1.0;
 
-  // Cache absolute ticks so we don't hard-refresh PWM continuously
-  private int lastAbsTicks = 0;
-  private double lastAbsRefreshTime = -1.0;
+																					 
 
-  // How often to refresh PWM absolute (seconds). 0.2s = 5 Hz.
-  private static final double ABS_REFRESH_PERIOD_S = 0.20;
+  // ---------------- Software unwrap tracking ----------------
 
-  // Modern WPILib FlywheelSim constructor (plant + motor model)
+  /** last wrapped absolute angle (deg) in [0, 360) */
+  private double lastAbsDegWrapped = 0.0;
+
+  /** continuous turret angle (deg), 0=forward, CCW positive, clamped to +/-340 */
+  private double continuousDeg = 0.0;
+
+  /** derived velocity estimate */
+  private double lastContinuousDeg = 0.0;
+  private double lastUpdateTs = Timer.getFPGATimestamp();
+  private double estVelDegPerSec = 0.0;
+
+  /** continuous target angle (deg) in [-340, +340] */
+  private double targetDeg = 0.0;
+
+  /** forward reference in degrees in the PWM frame */
+  private final double forwardDeg =
+      (Constants.OperatorConstants.Turret.ABS_FORWARD_TICKS
+          / (double) Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV) * 360.0;
+
+  // ---------------- Continuous wrap toggling ----------------
+
+  private boolean continuousWrapEnabled = true;
+  private final ClosedLoopGeneralConfigs clWrapOn = new ClosedLoopGeneralConfigs().withContinuousWrap(true);
+  private final ClosedLoopGeneralConfigs clWrapOff = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
+
+  // ---------------- Simulation ----------------
+
   private final FlywheelSim turretSim =
       new FlywheelSim(
           LinearSystemId.createFlywheelSystem(
@@ -89,7 +123,10 @@ public class TurretSubsystem extends SubsystemBase {
               Constants.OperatorConstants.Turret.SIM_TURRET_J_KGM2),
           DCMotor.getVex775Pro(1));
 
+  private double simPosRot = 0.0;
+
   // ---------------- SysId Characterization ----------------
+
   private final SysIdRoutine sysIdRoutine =
       new SysIdRoutine(
           new SysIdRoutine.Config(
@@ -100,7 +137,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   /**
    * Runtime gating for SysId. Requires BOTH compile-time enable and dashboard enable.
-   * This prevents accidental characterization runs.
+													
    */
   private boolean isSysIdEnabled() {
     return Constants.OperatorConstants.SysId.ENABLE_SYSID
@@ -110,243 +147,271 @@ public class TurretSubsystem extends SubsystemBase {
   public TurretSubsystem() {
     configureHardware();
     configureStatusSignals();
-    seedRelativeFromAbsoluteAtBoot();
+    seedFromAbsoluteAtBoot();
+
+    SmartDashboard.putBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
+    SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
   }
 
   private void configureStatusSignals() {
-    // Fast signals (closed-loop control & dashboard)
-    positionSig.setUpdateFrequency(100.0);
-    velocitySig.setUpdateFrequency(100.0);
+													 
+										  
+    rawPwmPosSig.setUpdateFrequency(100.0);
     motorVoltageSig.setUpdateFrequency(50.0);
 
-    // Raw PWM absolute: only needed for boot seeding + occasional debugging
-    rawPwmPosSig.setUpdateFrequency(10.0);
+																			
+										  
 
     turret.optimizeBusUtilization();
   }
 
-  private SensorPhaseValue sensorPhase() {
-    // If SENSOR_PHASE_INVERTED is true, flip sensor direction.
-    return Constants.OperatorConstants.Turret.SENSOR_PHASE_INVERTED
-        ? SensorPhaseValue.Opposed
-        : SensorPhaseValue.Aligned;
-  }
+										  
+															   
+																   
+								  
+								   
+   
 
   private InvertedValue motorInvertedValue() {
-    // Your convention: CCW is positive.
-    // If MOTOR_INVERTED is true, swap which physical direction is "positive".
+										
+																			  
     return Constants.OperatorConstants.Turret.MOTOR_INVERTED
-        ? InvertedValue.Clockwise_Positive
-        : InvertedValue.CounterClockwise_Positive;
+        ? InvertedValue.CounterClockwise_Positive
+        : InvertedValue.Clockwise_Positive;
+  }
+
+  private SensorPhaseValue sensorPhaseValue() {
+    // You said you changed sensor phase; keep a constant for this if you have it.
+    // If you do NOT have a constant, replace this with Aligned and handle phase via motor inversion.
+    boolean inverted = Constants.OperatorConstants.Turret.SENSOR_PHASE_INVERTED;
+    return inverted ? SensorPhaseValue.Opposed : SensorPhaseValue.Aligned;
   }
 
   private void configureHardware() {
-    // --- Motor output ---
-    MotorOutputConfigs out =
-        new MotorOutputConfigs()
-            .withNeutralMode(NeutralModeValue.Brake)
-            .withInverted(motorInvertedValue());
+    // Motor output (brake + inversion)
+							
+    MotorOutputConfigs out = new MotorOutputConfigs()
+        .withNeutralMode(NeutralModeValue.Brake)
+        .withInverted(motorInvertedValue());
 
-    // --- Brushed commutation (IMPORTANT if you factory-reset) ---
-    CommutationConfigs commutation =
-        new CommutationConfigs()
-            .withMotorArrangement(MotorArrangementValue.Brushed_DC)
-            .withBrushedMotorWiring(BrushedMotorWiringValue.Leads_A_and_B);
+    // Brushed commutation (you factory reset)
+    CommutationConfigs commutation = new CommutationConfigs()
+								
+        .withMotorArrangement(MotorArrangementValue.Brushed_DC)
+        .withBrushedMotorWiring(BrushedMotorWiringValue.Leads_A_and_B);
 
-    // --- Current limits ---
-    CurrentLimitsConfigs limits =
-        new CurrentLimitsConfigs()
-            .withSupplyCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
-            .withStatorCurrentLimitEnable(true)
-            .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);
+    // Current limits
+    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
+								  
+        .withSupplyCurrentLimitEnable(true)
+        .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
+        .withStatorCurrentLimitEnable(true)
+        .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);
 
-    // --- Closed-loop general ---
-    // Continuous wrap OFF because we enforce umbilical safe limits.
-    ClosedLoopGeneralConfigs clGen = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
+								  
+																	
+																							  
 
-    // --- Motion Magic ---
-    MotionMagicConfigs mm =
-        new MotionMagicConfigs()
-            .withMotionMagicCruiseVelocity(Constants.OperatorConstants.Turret.MM_CRUISE_VEL_RPS)
-            .withMotionMagicAcceleration(Constants.OperatorConstants.Turret.MM_ACCEL_RPS2);
+						   
+						   
+								
+																								
+																						   
 
-    // --- External feedback: Quadrature for control (multi-turn) ---
-    ExternalFeedbackConfigs quadFeedback =
-        new ExternalFeedbackConfigs()
-            .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.Quadrature)
-            .withQuadratureEdgesPerRotation(Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV)
-            .withSensorPhase(sensorPhase());
+    // PWM feedback (absolute)
+    ExternalFeedbackConfigs pwm = new ExternalFeedbackConfigs()
+        .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.PulseWidth)
+        // Important: makes wrap behavior symmetric around 0.5 rotations.
+        .withAbsoluteSensorDiscontinuityPoint(0.5)
+        .withSensorPhase(sensorPhaseValue());
 
-    // --- Slot0 gains (hardware closed-loop) ---
-    Slot0Configs slot0 =
-        new Slot0Configs()
-            .withKP(Constants.OperatorConstants.Turret.kP)
-            .withKI(Constants.OperatorConstants.Turret.kI)
-            .withKD(Constants.OperatorConstants.Turret.kD)
-            .withKS(Constants.OperatorConstants.Turret.kS)
-            .withKV(Constants.OperatorConstants.Turret.kV)
-            .withKA(Constants.OperatorConstants.Turret.kA);
+    // Slot0 gains for hardware position loop (voltage-based in Phoenix 6)
+    Slot0Configs slot0 = new Slot0Configs()
+						  
+        .withKP(Constants.OperatorConstants.Turret.kP)
+        .withKI(Constants.OperatorConstants.Turret.kI)
+        .withKD(Constants.OperatorConstants.Turret.kD)
+        .withKS(Constants.OperatorConstants.Turret.kS)
+        .withKV(Constants.OperatorConstants.Turret.kV)
+        .withKA(Constants.OperatorConstants.Turret.kA);
 
-    // --- Software limits in rotations (relative, seeded so 0 = forward) ---
-    double minRot = Constants.OperatorConstants.Turret.MIN_ANGLE_DEG / 360.0;
-    double maxRot = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG / 360.0;
-    SoftwareLimitSwitchConfigs soft =
-        new SoftwareLimitSwitchConfigs()
-            .withReverseSoftLimitEnable(true)
-            .withReverseSoftLimitThreshold(minRot)
-            .withForwardSoftLimitEnable(true)
-            .withForwardSoftLimitThreshold(maxRot);
-
-    TalonFXSConfiguration cfg =
-        new TalonFXSConfiguration()
-            .withMotorOutput(out)
-            .withCommutation(commutation)
-            .withCurrentLimits(limits)
-            .withClosedLoopGeneral(clGen)
-            .withExternalFeedback(quadFeedback)
-            .withSoftwareLimitSwitch(soft)
-            .withMotionMagic(mm)
-            .withSlot0(slot0);
-
-    turret.getConfigurator().apply(cfg);
-  }
-
-  /**
-   * Seeds the multi-turn (quadrature) relative position so that 0 degrees means "forward".
-   * Assumes at boot the turret is within +/- 180 degrees of forward.
-   *
-   * IMPORTANT: when switching between PulseWidth and Quadrature for seeding,
-   * apply ONLY ExternalFeedbackConfigs (NOT a new TalonFXSConfiguration), or you
-   * will overwrite commutation/motor arrangement back to defaults.
-   */
-  private void seedRelativeFromAbsoluteAtBoot() {
-    // Temporarily use PulseWidth to read absolute.
-    ExternalFeedbackConfigs pwm =
-        new ExternalFeedbackConfigs()
-            .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.PulseWidth)
-            .withAbsoluteSensorDiscontinuityPoint(1.0)
-            .withSensorPhase(sensorPhase());
-
-    // Apply ONLY this config (preserves brushed commutation + other configs)
+    // Apply configs
+    turret.getConfigurator().apply(out);
+    turret.getConfigurator().apply(commutation);
+    turret.getConfigurator().apply(limits);
     turret.getConfigurator().apply(pwm);
+    turret.getConfigurator().apply(slot0);
+												  
+											 
+												   
 
-    int absTicks = readAbsoluteTicksFresh(0.30);
-    lastAbsTicks = absTicks;
-    lastAbsRefreshTime = Timer.getFPGATimestamp();
+    // Default to wrap ON, and switch off when we must force long-way
+    turret.getConfigurator().apply(clWrapOn);
+    continuousWrapEnabled = true;
+  }
+									  
+										 
+											   
+										  
+								
+							  
 
-    int deltaTicks =
-        wrapToHalfRev(
-            absTicks - Constants.OperatorConstants.Turret.ABS_FORWARD_TICKS,
-            Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV);
-
-    double deltaRot =
-        (double) deltaTicks / (double) Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
-
-    // Restore quadrature feedback for control.
-    ExternalFeedbackConfigs quad =
-        new ExternalFeedbackConfigs()
-            .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.Quadrature)
-            .withQuadratureEdgesPerRotation(Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV)
-            .withSensorPhase(sensorPhase());
-
-    // Apply ONLY this config (preserves commutation)
-    turret.getConfigurator().apply(quad);
-
-    // Set relative position so that 0 rotations corresponds to ABS_FORWARD_TICKS.
-    turret.setPosition(deltaRot);
+  private void setContinuousWrap(boolean enable) {
+    if (enable == continuousWrapEnabled) return;
+    turret.getConfigurator().apply(enable ? clWrapOn : clWrapOff);
+    continuousWrapEnabled = enable;
+    SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", enable);
   }
 
   /**
-   * Attempts to read a fresh absolute PWM tick value, retrying briefly.
-   * Used only during boot seeding.
+   * Read absolute PWM angle (deg) in [0, 360).
+   * If signal is stale, returns last known value.
+	
+																			 
+																				 
+																   
    */
-  private int readAbsoluteTicksFresh(double timeoutSec) {
-    double start = Timer.getFPGATimestamp();
-    while (Timer.getFPGATimestamp() - start < timeoutSec) {
-      rawPwmPosSig.refresh();
-      StatusCode status = rawPwmPosSig.getStatus();
-      if (status == StatusCode.OK) {
-        return angleRotToAbsTicks(rawPwmPosSig.getValueAsDouble());
-      }
-      Timer.delay(0.01);
-    }
-    return lastAbsTicks; // fallback
-  }
-
-  /** Converts a rotations value (wrapped) to [0..4095] ticks. */
-  private int angleRotToAbsTicks(double rot) {
-    rot = rot - Math.floor(rot); // [0,1)
-    int ticks = (int) Math.round(rot * Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV);
-    ticks %= Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
-    if (ticks < 0) ticks += Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
-    return ticks;
-  }
-
-  /**
-   * Refreshes PWM absolute only occasionally to avoid -1003 "too stale" spam.
-   * Keeps lastAbsTicks updated at low rate, and never throws if stale.
-   */
-  private void updateAbsoluteTicksOccasionally() {
-    double now = Timer.getFPGATimestamp();
-    if (lastAbsRefreshTime >= 0 && (now - lastAbsRefreshTime) < ABS_REFRESH_PERIOD_S) return;
-
+  private double getAbsDegWrapped() {
     rawPwmPosSig.refresh();
     StatusCode status = rawPwmPosSig.getStatus();
+    SmartDashboard.putString("Turret/AbsPwmStatus", status.toString());
+																						   
+													  
+											
 
-    if (status == StatusCode.OK) {
-      lastAbsTicks = angleRotToAbsTicks(rawPwmPosSig.getValueAsDouble());
-      lastAbsRefreshTime = now;
-      SmartDashboard.putString("Turret/AbsPwmStatus", "OK");
-    } else {
-      // Keep lastAbsTicks; don’t hammer CAN or spam console.
-      SmartDashboard.putString("Turret/AbsPwmStatus", status.toString());
-      lastAbsRefreshTime = now;
+																			 
+										
+
+    if (status != StatusCode.OK) {
+      return lastAbsDegWrapped;
     }
+
+    double rot = rawPwmPosSig.getValueAsDouble();
+    rot = rot - Math.floor(rot);
+    double deg = rot * 360.0;
+    return wrapTo0To360(deg);
+  }
+
+  /**
+   * Seed software continuous angle at boot, assuming within +/-180 of forward.
+   */
+  private void seedFromAbsoluteAtBoot() {
+    Timer.delay(0.05);
+
+    double absDeg = getAbsDegWrapped();
+    lastAbsDegWrapped = absDeg;
+									 
+																						   
+																								 
+											
+
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+										 
+
+    // Boot assumption: within +/-180
+    deltaDeg = clamp(
+        deltaDeg,
+        -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
+        Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
+
+    continuousDeg = deltaDeg;
+    lastContinuousDeg = continuousDeg;
+								   
+	 
+														 
+    lastUpdateTs = Timer.getFPGATimestamp();
+    targetDeg = continuousDeg;
+							 
+												   
+									
+																   
+	   
+						
+	 
+									
+   
+
+    SmartDashboard.putNumber("Turret/SeedAbsDeg", absDeg);
+    SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);
+										 
+																							 
+																  
+																				 
+				 
+  }
+
+  /**
+   * Update continuousDeg by unwrapping PWM absolute, clamping to +/-340.
+																	   
+   */
+  private void updateContinuousAngle() {
+    double now = Timer.getFPGATimestamp();
+    double dt = Math.max(1e-3, now - lastUpdateTs);
+
+    double absDeg = getAbsDegWrapped();
+    double delta = ANGLE_SIGN * wrapToPlusMinus180(absDeg - lastAbsDegWrapped);
+
+    double nextContinuous = continuousDeg + delta;
+																		 
+							   
+															
+			
+															   
+																		 
+							   
+	 
+   
+
+    // Hard safety clamp to +/- MAX
+    nextContinuous = clamp(
+        nextContinuous,
+        Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
+        Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
+
+    estVelDegPerSec = (nextContinuous - lastContinuousDeg) / dt;
+							   
+									
+   
+
+    continuousDeg = nextContinuous;
+    lastContinuousDeg = continuousDeg;
+    lastAbsDegWrapped = absDeg;
+    lastUpdateTs = now;
   }
 
   // ---------------- Public API ----------------
 
-  /** Relative angle (degrees) where 0 = forward, CCW positive. */
+  /** Continuous turret angle (deg), 0 = forward, CCW positive. */
   public double getAngleDeg() {
-    return getPositionRot() * 360.0;
-  }
-
-  /** Relative position (rotations) where 0 = forward. */
-  public double getPositionRot() {
-    return positionSig.getValueAsDouble(); // rotations (refreshed in periodic)
-  }
-
-  /** Relative velocity (rotations/sec). */
-  public double getVelocityRps() {
-    return velocitySig.getValueAsDouble(); // rotations/sec (refreshed in periodic)
+    return continuousDeg;
   }
 
   public double getVelocityDegPerSec() {
-    return getVelocityRps() * 360.0;
+    return estVelDegPerSec;
   }
 
   public double getAppliedVolts() {
-    return motorVoltageSig.getValueAsDouble(); // volts (refreshed in periodic)
+    motorVoltageSig.refresh();
+    return motorVoltageSig.getValueAsDouble();
   }
 
-  /** Cached absolute PWM ticks (0-4095). Refreshes slowly in periodic(). */
+  /** Absolute ticks (0-4095 equivalent) from wrapped PWM. */
   public int getAbsoluteTicks() {
-    return lastAbsTicks;
+    double absDeg = lastAbsDegWrapped;
+    int ticks = (int) Math.round((absDeg / 360.0) * Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV);
+    ticks %= Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
+    if (ticks < 0) ticks += Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
+    return ticks;
+							
   }
 
-  /** Sets whether goToAngle uses Motion Magic or simple position PID. */
-  public void setUseMotionMagic(boolean enable) {
-    useMotionMagic = enable;
-  }
-
-  /** Open-loop manual control with safety clamp and software limits active on device. */
+  /** Open-loop manual control with safety clamp. */
   public void setDutyCycle(double duty) {
-    duty =
-        clamp(
-            duty,
-            -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
-            Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
+    duty = clamp(
+			  
+        duty,
+        -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
+        Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
     turret.setControl(dutyRequest.withOutput(duty));
   }
 
@@ -354,28 +419,92 @@ public class TurretSubsystem extends SubsystemBase {
     turret.stopMotor();
   }
 
-  /** Go to desired turret angle relative to robot forward (device limits will prevent exceeding). */
-  public void goToAngleDeg(double targetDeg) {
-    targetDeg =
-        clamp(
-            targetDeg,
-            Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
-            Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
-    double targetRot = targetDeg / 360.0;
+  /**
+   * Command turret to desired angle (deg) relative to forward.
+   *
+   * <p>This method enforces +/-340 safety and chooses the best equivalent target among
+   * {deg, deg+360, deg-360} that stays inside the allowed range and minimizes travel.
+   *
+   * <p>Then it toggles continuous wrap:
+   *  - Wrap ON if |delta| <= 180 (short way)
+   *  - Wrap OFF if |delta| > 180 (force long way)
+   */
+  public void goToAngleDeg(double desiredDeg) {
+    double best = chooseBestEquivalentTargetDeg(desiredDeg);
+			  
+					  
+															 
+															  
+										 
 
-    if (useMotionMagic) {
-      turret.setControl(motionMagicRequest.withPosition(targetRot));
-    } else {
-      turret.setControl(positionRequest.withPosition(targetRot));
+    if (Double.isNaN(best)) {
+      stop();
+      SmartDashboard.putString("Turret/GoalStatus", "REJECTED_UNREACHABLE");
+      return;
     }
+
+    targetDeg = best;
+    double delta = targetDeg - continuousDeg;
+
+    boolean wantWrap = Math.abs(delta) <= 180.0;
+    setContinuousWrap(wantWrap);
+
+    double targetRot = ANGLE_SIGN * wrappedRotFromContinuousDeg(targetDeg);
+
+    turret.setControl(positionRequest.withPosition(targetRot));
+
+    SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
+    SmartDashboard.putNumber("Turret/DeltaDegCmd", delta);
+    SmartDashboard.putString("Turret/GoalStatus", wantWrap ? "SHORT_WRAP_ON" : "LONG_WRAP_OFF");
   }
 
-  /** Returns true when turret is within tolerance (deg) of a target. */
-  public boolean atAngleDeg(double targetDeg, double toleranceDeg) {
-    return Math.abs(getAngleDeg() - targetDeg) <= toleranceDeg;
+  /** true if turret is within tolerance of desired angle (deg), using best safe equivalent. */
+  public boolean atAngleDeg(double desiredDeg, double toleranceDeg) {
+    double best = chooseBestEquivalentTargetDeg(desiredDeg);
+    if (Double.isNaN(best)) return false;
+    return Math.abs(continuousDeg - best) <= toleranceDeg;
   }
 
-  /** SysId factory commands (bind to buttons/dashboard). */
+  /**
+   * Choose best equivalent target among {deg, deg+360, deg-360} that:
+   *  - stays within [MIN_ANGLE_DEG, MAX_ANGLE_DEG]
+   *  - minimizes travel from current continuousDeg
+   */
+  private double chooseBestEquivalentTargetDeg(double desiredDeg) {
+    double min = Constants.OperatorConstants.Turret.MIN_ANGLE_DEG;
+    double max = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG;
+
+    // clamp base desired into allowable range first (keeps intent sane)
+    desiredDeg = clamp(desiredDeg, min, max);
+
+    double[] candidates = new double[] { desiredDeg, desiredDeg + 360.0, desiredDeg - 360.0 };
+
+    double best = Double.NaN;
+    double bestDist = Double.POSITIVE_INFINITY;
+
+    for (double c : candidates) {
+      if (c < min || c > max) continue;
+      double dist = Math.abs(c - continuousDeg);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = c;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Convert a continuous target (deg relative to forward) into the wrapped PWM
+   * rotation value [0,1).
+   */
+  private double wrappedRotFromContinuousDeg(double continuousDegTarget) {
+    double absDeg = forwardDeg + (continuousDegTarget);
+    absDeg = wrapTo0To360(absDeg);
+    return absDeg / 360.0;
+  }
+
+  // ---------------- SysId commands ----------------
+
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
     if (!isSysIdEnabled()) return new edu.wpi.first.wpilibj2.command.InstantCommand();
     return sysIdRoutine.quasistatic(direction);
@@ -387,6 +516,7 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   // ---------------- SysId callbacks ----------------
+
   private void sysIdVoltageDrive(Voltage volts) {
     if (!isSysIdEnabled()) {
       stop();
@@ -394,11 +524,11 @@ public class TurretSubsystem extends SubsystemBase {
     }
     double v = volts.in(Volts);
     double duty = v / RobotController.getBatteryVoltage();
-    duty =
-        clamp(
-            duty,
-            -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
-            Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
+    duty = clamp(
+			  
+        duty,
+        -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
+        Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
     setDutyCycle(duty);
   }
 
@@ -406,23 +536,25 @@ public class TurretSubsystem extends SubsystemBase {
     if (!isSysIdEnabled()) return;
     log.motor("turret")
         .voltage(Volts.of(getAppliedVolts()))
-        .angularPosition(Rotations.of(getPositionRot()))
-        .angularVelocity(RotationsPerSecond.of(getVelocityRps()));
+        .angularPosition(Rotations.of(getAngleDeg() / 360.0))
+        .angularVelocity(RotationsPerSecond.of(getVelocityDegPerSec() / 360.0));
   }
 
   @Override
   public void periodic() {
-    // Refresh fast signals in one CAN batch
-    BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
+    updateContinuousAngle();
+																		   
 
-    // Refresh absolute PWM slowly (prevents -1003 spam)
-    updateAbsoluteTicksOccasionally();
+														
+									  
 
     SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
     SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
     SmartDashboard.putNumber("Turret/AppliedVolts", getAppliedVolts());
     SmartDashboard.putNumber("Turret/AbsTicks", getAbsoluteTicks());
-    SmartDashboard.putNumber("Turret/RelRot", getPositionRot());
+    SmartDashboard.putNumber("Turret/AbsDegWrapped", lastAbsDegWrapped);
+    SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
+    SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
   }
 
   @Override
@@ -433,42 +565,49 @@ public class TurretSubsystem extends SubsystemBase {
 
     var simState = turret.getSimState();
 
-    // Keep CTRE sim supplied with roboRIO voltage
+												  
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
 
-    // Drive physics sim using the voltage the controller is applying
+																	 
     double appliedV = simState.getMotorVoltage();
     turretSim.setInputVoltage(appliedV);
     turretSim.update(dt);
 
-    // FlywheelSim outputs rad/s. Convert to rotations/sec.
+														   
     double rps = turretSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
 
-    // Integrate position in rotations
+									  
     simPosRot += rps * dt;
 
-    // Update the external sensor channels used by TalonFXS
-    simState.setQuadratureVelocity(rps);
-    simState.setRawQuadraturePosition(simPosRot);
+														   
+										
+												 
 
-    // PWM absolute should be in [0,1) rotations
+												
     double pwmRot = simPosRot - Math.floor(simPosRot);
     simState.setPulseWidthPosition(pwmRot);
 
-    // Battery sag approximation
+								
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(turretSim.getCurrentDrawAmps()));
   }
+
+  // ---------------- Helpers ----------------
 
   private static double clamp(double v, double lo, double hi) {
     return Math.max(lo, Math.min(hi, v));
   }
 
-  private static int wrapToHalfRev(int ticks, int modulus) {
-    int half = modulus / 2;
-    int t = ticks % modulus;
-    if (t > half) t -= modulus;
-    if (t < -half) t += modulus;
-    return t;
+  private static double wrapTo0To360(double deg) {
+    double d = deg % 360.0;
+    if (d < 0) d += 360.0;
+    return d;
+  }
+
+  /** wrap to (-180, 180] */
+  private static double wrapToPlusMinus180(double deg) {
+    double d = ((deg + 180.0) % 360.0);
+    if (d < 0) d += 360.0;
+    return d - 180.0;
   }
 }

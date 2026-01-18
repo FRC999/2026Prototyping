@@ -267,21 +267,33 @@ public final class Constants {
 
     }
 
-    /** Turret prototype (Talon FXS + CTRE Mag encoder via gadgeteer port). */
+    /**
+     * Turret prototype (Talon FXS + absolute PWM encoder).
+     *
+     * <p>We enforce the umbilical safety limits in software (multi-turn tracking) while still
+     * using Phoenix 6 hardware PID. Continuous wrap may be enabled/disabled at runtime by the
+     * TurretSubsystem depending on whether the shortest path would violate the software limits.
+     */
     public static final class Turret {
       public static final int CAN_ID = 21;
 
       /** Use the same CAN bus as the drivetrain by default. */
       public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
 
-      /** CTRE Mag absolute reference (PulseWidth 0-4095 equivalent). */
+      /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
       public static final int ABS_TICKS_PER_REV = 4096;
       /** Absolute encoder tick value that corresponds to turret pointing forward. */
-      public static final int ABS_FORWARD_TICKS = 3659;
+      public static final int ABS_FORWARD_TICKS = 1282;
+
+      /**
+       * Boot assumption: at robot power-on, turret is within +/- 180 degrees of forward.
+       * Used to seed the software unwrapped angle.
+       */
+      public static final double BOOT_MAX_ABS_DEG = 180.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -190.0;
-      public static final double MAX_ANGLE_DEG = 190.0;
+      public static final double MIN_ANGLE_DEG = -340.0;
+      public static final double MAX_ANGLE_DEG = 340.0;
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -293,7 +305,10 @@ public final class Constants {
        * needed on-robot.
        */
       public static final boolean MOTOR_INVERTED = true;
-      public static final boolean SENSOR_PHASE_INVERTED = true; //Encoder Inversion
+																					
+
+      /** If angle changes the wrong direction relative to motor output, flip this. */
+      public static final boolean SENSOR_PHASE_INVERTED = false;
 
       /** Output safety limits. */
       public static final double MAX_DUTY_CYCLE = 0.8;
@@ -301,10 +316,10 @@ public final class Constants {
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
 
       /** Placeholder gains (Position control). Tune after SysId. */
-      public static final double kP = 100.0;
-      public static final double kI = 40.0;
+      public static final double kP = 40.0;
+      public static final double kI = 0.0;
       public static final double kD = 2.0;
-      public static final double kS = 10.0;
+      public static final double kS = 0.0;
       public static final double kV = 0.0;
       public static final double kA = 0.0;
 
@@ -334,14 +349,14 @@ public final class Constants {
       public static final double kP = 0.15;
       public static final double kI = 0.0;
       public static final double kD = 0.0;
-      public static final double kS = 0.0;
-      public static final double kV = 0.0;
+      public static final double kS = 0.2;
+      public static final double kV = 0.13125;
       public static final double kA = 0.0;
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 3000.0;
-      public static final double RPM_STEP = 10.0;
-      public static final double READY_TOLERANCE_RPM = 50.0;
+      public static final double RPM_STEP = 50.0;
+      public static final double READY_TOLERANCE_RPM = 75.0;
       public static final double READY_MIN_TIME_S = 0.20;
       public static final double DIP_DETECT_DROP_RPM = 250.0;
 

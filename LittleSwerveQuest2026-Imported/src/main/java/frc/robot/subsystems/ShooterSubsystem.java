@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
@@ -52,8 +53,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private final boolean isSim = RobotBase.isSimulation();
 
-  // Modern WPILib FlywheelSim constructor (plant + motor model)
-  // Add SIM_GEAR_RATIO in constants (use 1.0 for your direct belt ratio).
+  // WPILib 2026 FlywheelSim uses a plant + motor model
   private final FlywheelSim flywheelSim =
       new FlywheelSim(
           LinearSystemId.createFlywheelSystem(
@@ -62,7 +62,7 @@ public class ShooterSubsystem extends SubsystemBase {
               Constants.OperatorConstants.Shooter.SIM_J_KGM2),
           DCMotor.getKrakenX60(1));
 
-  // Phoenix 6 typed signals (NOT StatusSignal<Double>)
+  // Phoenix 6 typed signals
   private final StatusSignal<AngularVelocity> velocitySig = shooter.getVelocity();
   private final StatusSignal<Voltage> motorVoltageSig = shooter.getMotorVoltage();
 
@@ -75,20 +75,24 @@ public class ShooterSubsystem extends SubsystemBase {
               Seconds.of(Constants.OperatorConstants.SysId.SHOOTER_TIMEOUT_S)),
           new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "shooter"));
 
-  /**
-   * Runtime gating for SysId. Requires BOTH compile-time enable and dashboard enable.
-   * This prevents accidental characterization runs.
-   */
+  /** Runtime gating for SysId. */
   private boolean isSysIdEnabled() {
     return Constants.OperatorConstants.SysId.ENABLE_SYSID
         && SmartDashboard.getBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
   }
 
   public ShooterSubsystem() {
-    configure();
+    configureHardware();
+    configureStatusSignals();
   }
 
-  private void configure() {
+  private void configureStatusSignals() {
+    velocitySig.setUpdateFrequency(100.0);
+    motorVoltageSig.setUpdateFrequency(50.0);
+    shooter.optimizeBusUtilization();
+  }
+
+  private void configureHardware() {
     MotorOutputConfigs out =
         new MotorOutputConfigs()
             .withNeutralMode(
@@ -131,8 +135,7 @@ public class ShooterSubsystem extends SubsystemBase {
     readySince = 0.0;
     wasReady = false;
 
-    // Phoenix 6 uses rotations/sec
-    double targetRps = targetRpm / 60.0;
+    double targetRps = targetRpm / 60.0; // Phoenix 6 uses rotations/sec
     shooter.setControl(velocityRequest.withVelocity(targetRps));
   }
 
@@ -158,7 +161,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Shooter velocity in rotations/sec. */
   public double getVelocityRps() {
-    return velocitySig.refresh().getValueAsDouble();
+    return velocitySig.getValueAsDouble();
   }
 
   public double getVelocityRpm() {
@@ -166,7 +169,14 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double getAppliedVolts() {
-    return motorVoltageSig.refresh().getValueAsDouble();
+    return motorVoltageSig.getValueAsDouble();
+  }
+
+  /** "Power" as a duty-cycle estimate (applied volts / battery volts). */
+  public double getAppliedDuty() {
+    double batt = RobotController.getBatteryVoltage();
+    if (batt <= 1e-6) return 0.0;
+    return getAppliedVolts() / batt;
   }
 
   /** True when shooter has been within tolerance for READY_MIN_TIME_S. */
@@ -198,7 +208,6 @@ public class ShooterSubsystem extends SubsystemBase {
     }
     double v = volts.in(Volts);
 
-    // Respect safety limits
     double duty = v / RobotController.getBatteryVoltage();
     duty =
         clamp(
@@ -213,20 +222,23 @@ public class ShooterSubsystem extends SubsystemBase {
     if (!isSysIdEnabled()) return;
     log.motor("shooter")
         .voltage(Volts.of(getAppliedVolts()))
-        .angularPosition(Rotations.of(0.0)) // we don't track position for pure flywheel
+        .angularPosition(Rotations.of(0.0))
         .angularVelocity(RotationsPerSecond.of(getVelocityRps()));
   }
 
   @Override
   public void periodic() {
+    // refresh fast signals as a batch
+    BaseStatusSignal.refreshAll(velocitySig, motorVoltageSig);
+
     double rpm = getVelocityRpm();
 
     // Ready logic
     boolean inTol =
         targetRpm > 1.0
             && Math.abs(rpm - targetRpm) <= Constants.OperatorConstants.Shooter.READY_TOLERANCE_RPM;
-    double now = Timer.getFPGATimestamp();
 
+    double now = Timer.getFPGATimestamp();
     if (inTol) {
       if (readySince <= 0.0) readySince = now;
       if (!wasReady && (now - readySince) >= Constants.OperatorConstants.Shooter.READY_MIN_TIME_S) {
@@ -237,19 +249,21 @@ public class ShooterSubsystem extends SubsystemBase {
       wasReady = false;
     }
 
-    // Dip detection: once we were ready, detect a large RPM drop
-    if (!dipDetected
-        && wasReady
-        && (lastRpm - rpm) >= Constants.OperatorConstants.Shooter.DIP_DETECT_DROP_RPM) {
+    // Dip detection
+    if (!dipDetected && wasReady && (lastRpm - rpm) >= Constants.OperatorConstants.Shooter.DIP_DETECT_DROP_RPM) {
       dipDetected = true;
     }
     lastRpm = rpm;
 
+    // Dashboard
     SmartDashboard.putNumber("Shooter/TargetRPM", targetRpm);
     SmartDashboard.putNumber("Shooter/RPM", rpm);
     SmartDashboard.putBoolean("Shooter/Ready", wasReady);
     SmartDashboard.putBoolean("Shooter/DipDetected", dipDetected);
+
     SmartDashboard.putNumber("Shooter/AppliedVolts", getAppliedVolts());
+    SmartDashboard.putNumber("Shooter/AppliedDuty", getAppliedDuty());
+    SmartDashboard.putNumber("Shooter/BatteryVolts", RobotController.getBatteryVoltage());
   }
 
   @Override
@@ -259,22 +273,15 @@ public class ShooterSubsystem extends SubsystemBase {
     final double dt = 0.02;
 
     var simState = shooter.getSimState();
-
-    // Keep CTRE sim supplied with the roboRIO voltage
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
 
-    // Drive physics sim using the voltage the controller is applying
     double appliedV = simState.getMotorVoltage();
     flywheelSim.setInputVoltage(appliedV);
     flywheelSim.update(dt);
 
-    // FlywheelSim outputs rad/s. Convert to rotations/sec.
     double rps = flywheelSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-
-    // Push sim velocity back into CTRE
     simState.setRotorVelocity(rps);
 
-    // Battery sag approximation
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(flywheelSim.getCurrentDrawAmps()));
   }

@@ -27,4 +27,9 @@ public final class Constants {
     public final static boolean rightLeadInverted = false;
     public final static boolean rightFollowInverted = false;
   }
+
+  public static class IntakeConstants{
+    public final static int intakeMotorID = 0;
+    public final static int launcherMotorID = 1;
+  }
 }

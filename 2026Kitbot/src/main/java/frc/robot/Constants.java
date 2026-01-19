@@ -31,5 +31,6 @@ public final class Constants {
   public static class IntakeConstants{
     public final static int intakeMotorID = 0;
     public final static int launcherMotorID = 1;
+    public final static double intakeSpeed = 0.6;
   }
 }

@@ -4,6 +4,7 @@
 
 package frc.robot.subsystems;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.VictorSPXConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 
@@ -24,12 +25,12 @@ public class IntakeSubsystem extends SubsystemBase {
     launcherMotor.configAllSettings(configs);
   }
 
-  public void setIntakeMotor(double voltage){
-    intakeMotor.setVoltage(voltage);
+  public void setIntakeMotor(double speed){
+    intakeMotor.set(ControlMode.PercentOutput, speed);
   }
   
-  public void setLauncherMotor(double voltage){
-    launcherMotor.setVoltage(voltage);
+  public void setLauncherMotor(double speed){
+    launcherMotor.set(ControlMode.PercentOutput, speed);
   }
 
   public void stop(){

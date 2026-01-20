@@ -87,8 +87,8 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   private void configureStatusSignals() {
-    velocitySig.setUpdateFrequency(100.0);
-    motorVoltageSig.setUpdateFrequency(50.0);
+    velocitySig.setUpdateFrequency(100.0); //100
+    motorVoltageSig.setUpdateFrequency(100.0); //50
     shooter.optimizeBusUtilization();
   }
 

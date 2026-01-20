@@ -346,12 +346,12 @@ public final class Constants {
       public static final double STATOR_CURRENT_LIMIT_A = 60.0;
 
       /** Velocity control gains (placeholders). */
-      public static final double kP = 0.15;
+      public static final double kP = 0.146; //0.145
       public static final double kI = 0.0;
-      public static final double kD = 0.0;
+      public static final double kD = 0.001; //0.0
       public static final double kS = 0.2;
-      public static final double kV = 0.13125;
-      public static final double kA = 0.0;
+      public static final double kV = 0.13125; // Try this tomorrow: 0.133
+      public static final double kA = 0.0; //0.0
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 3000.0;

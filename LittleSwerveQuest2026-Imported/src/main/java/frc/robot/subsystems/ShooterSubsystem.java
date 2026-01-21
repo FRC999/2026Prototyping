@@ -39,8 +39,8 @@ import frc.robot.Constants;
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
 
-  private final TalonFX shooter =
-      new TalonFX(Constants.OperatorConstants.Shooter.CAN_ID, Constants.OperatorConstants.Shooter.CANBUS_NAME);
+  private final TalonFX shooter = new TalonFX(Constants.OperatorConstants.Shooter.CAN_ID,
+      Constants.OperatorConstants.Shooter.CANBUS_NAME);
 
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0);
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
@@ -51,29 +51,35 @@ public class ShooterSubsystem extends SubsystemBase {
   private double readySince = 0.0;
   private boolean dipDetected = false;
 
+  // ---------------- Shooter readiness (rolling window stats) ----------------
+  private final double[] rpmWindow = new double[Constants.OperatorConstants.Shooter.READY_WINDOW_SAMPLES];
+  private int rpmWindowCount = 0;
+  private int rpmWindowIndex = 0;
+
+  private double rpmMean = 0.0;
+  private double rpmStdDev = 0.0;
+
   private final boolean isSim = RobotBase.isSimulation();
 
   // WPILib 2026 FlywheelSim uses a plant + motor model
-  private final FlywheelSim flywheelSim =
-      new FlywheelSim(
-          LinearSystemId.createFlywheelSystem(
-              DCMotor.getKrakenX60(1),
-              Constants.OperatorConstants.Shooter.SIM_GEAR_RATIO,
-              Constants.OperatorConstants.Shooter.SIM_J_KGM2),
-          DCMotor.getKrakenX60(1));
+  private final FlywheelSim flywheelSim = new FlywheelSim(
+      LinearSystemId.createFlywheelSystem(
+          DCMotor.getKrakenX60(1),
+          Constants.OperatorConstants.Shooter.SIM_GEAR_RATIO,
+          Constants.OperatorConstants.Shooter.SIM_J_KGM2),
+      DCMotor.getKrakenX60(1));
 
   // Phoenix 6 typed signals
   private final StatusSignal<AngularVelocity> velocitySig = shooter.getVelocity();
   private final StatusSignal<Voltage> motorVoltageSig = shooter.getMotorVoltage();
 
   // ---------------- SysId Characterization ----------------
-  private final SysIdRoutine sysIdRoutine =
-      new SysIdRoutine(
-          new SysIdRoutine.Config(
-              Volts.per(Seconds).of(Constants.OperatorConstants.SysId.SHOOTER_RAMP_RATE_V_PER_S),
-              Volts.of(Constants.OperatorConstants.SysId.SHOOTER_STEP_V),
-              Seconds.of(Constants.OperatorConstants.SysId.SHOOTER_TIMEOUT_S)),
-          new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "shooter"));
+  private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Seconds).of(Constants.OperatorConstants.SysId.SHOOTER_RAMP_RATE_V_PER_S),
+          Volts.of(Constants.OperatorConstants.SysId.SHOOTER_STEP_V),
+          Seconds.of(Constants.OperatorConstants.SysId.SHOOTER_TIMEOUT_S)),
+      new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "shooter"));
 
   /** Runtime gating for SysId. */
   private boolean isSysIdEnabled() {
@@ -87,41 +93,38 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   private void configureStatusSignals() {
-    velocitySig.setUpdateFrequency(100.0); //100
-    motorVoltageSig.setUpdateFrequency(100.0); //50
+    velocitySig.setUpdateFrequency(100.0); // 100
+    motorVoltageSig.setUpdateFrequency(100.0); // 50
     shooter.optimizeBusUtilization();
   }
 
   private void configureHardware() {
-    MotorOutputConfigs out =
-        new MotorOutputConfigs()
-            .withNeutralMode(
-                Constants.OperatorConstants.Shooter.NEUTRAL_COAST
-                    ? NeutralModeValue.Coast
-                    : NeutralModeValue.Brake)
-            .withInverted(
-                Constants.OperatorConstants.Shooter.MOTOR_INVERTED
-                    ? InvertedValue.Clockwise_Positive
-                    : InvertedValue.CounterClockwise_Positive);
+    MotorOutputConfigs out = new MotorOutputConfigs()
+        .withNeutralMode(
+            Constants.OperatorConstants.Shooter.NEUTRAL_COAST
+                ? NeutralModeValue.Coast
+                : NeutralModeValue.Brake)
+        .withInverted(
+            Constants.OperatorConstants.Shooter.MOTOR_INVERTED
+                ? InvertedValue.Clockwise_Positive
+                : InvertedValue.CounterClockwise_Positive);
 
-    CurrentLimitsConfigs limits =
-        new CurrentLimitsConfigs()
-            .withSupplyCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(Constants.OperatorConstants.Shooter.SUPPLY_CURRENT_LIMIT_A)
-            .withStatorCurrentLimitEnable(true)
-            .withStatorCurrentLimit(Constants.OperatorConstants.Shooter.STATOR_CURRENT_LIMIT_A);
+    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
+        .withSupplyCurrentLimitEnable(true)
+        .withSupplyCurrentLimit(Constants.OperatorConstants.Shooter.SUPPLY_CURRENT_LIMIT_A)
+        .withStatorCurrentLimitEnable(true)
+        .withStatorCurrentLimit(Constants.OperatorConstants.Shooter.STATOR_CURRENT_LIMIT_A);
 
-    Slot0Configs slot0 =
-        new Slot0Configs()
-            .withKP(Constants.OperatorConstants.Shooter.kP)
-            .withKI(Constants.OperatorConstants.Shooter.kI)
-            .withKD(Constants.OperatorConstants.Shooter.kD)
-            .withKS(Constants.OperatorConstants.Shooter.kS)
-            .withKV(Constants.OperatorConstants.Shooter.kV)
-            .withKA(Constants.OperatorConstants.Shooter.kA);
+    Slot0Configs slot0 = new Slot0Configs()
+        .withKP(Constants.OperatorConstants.Shooter.kP)
+        .withKI(Constants.OperatorConstants.Shooter.kI)
+        .withKD(Constants.OperatorConstants.Shooter.kD)
+        .withKS(Constants.OperatorConstants.Shooter.kS)
+        .withKV(Constants.OperatorConstants.Shooter.kV)
+        .withKA(Constants.OperatorConstants.Shooter.kA);
 
-    TalonFXConfiguration cfg =
-        new TalonFXConfiguration().withMotorOutput(out).withCurrentLimits(limits).withSlot0(slot0);
+    TalonFXConfiguration cfg = new TalonFXConfiguration().withMotorOutput(out).withCurrentLimits(limits)
+        .withSlot0(slot0);
 
     shooter.getConfigurator().apply(cfg);
   }
@@ -141,11 +144,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Open-loop duty-cycle (for quick tests). */
   public void setDutyCycle(double duty) {
-    duty =
-        clamp(
-            duty,
-            -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
-            Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
+    duty = clamp(
+        duty,
+        -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
+        Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
     targetRpm = 0.0;
     shooter.setControl(dutyRequest.withOutput(duty));
   }
@@ -175,7 +177,8 @@ public class ShooterSubsystem extends SubsystemBase {
   /** "Power" as a duty-cycle estimate (applied volts / battery volts). */
   public double getAppliedDuty() {
     double batt = RobotController.getBatteryVoltage();
-    if (batt <= 1e-6) return 0.0;
+    if (batt <= 1e-6)
+      return 0.0;
     return getAppliedVolts() / batt;
   }
 
@@ -184,19 +187,23 @@ public class ShooterSubsystem extends SubsystemBase {
     return wasReady;
   }
 
-  /** True when we observed a speed dip after being ready (proxy for a ball hit). */
+  /**
+   * True when we observed a speed dip after being ready (proxy for a ball hit).
+   */
   public boolean wasDipDetected() {
     return dipDetected;
   }
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    if (!isSysIdEnabled())
+      return new edu.wpi.first.wpilibj2.command.InstantCommand();
     return sysIdRoutine.quasistatic(direction);
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    if (!isSysIdEnabled())
+      return new edu.wpi.first.wpilibj2.command.InstantCommand();
     return sysIdRoutine.dynamic(direction);
   }
 
@@ -209,17 +216,17 @@ public class ShooterSubsystem extends SubsystemBase {
     double v = volts.in(Volts);
 
     double duty = v / RobotController.getBatteryVoltage();
-    duty =
-        clamp(
-            duty,
-            -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
-            Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
+    duty = clamp(
+        duty,
+        -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
+        Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
 
     shooter.setControl(dutyRequest.withOutput(duty));
   }
 
   private void sysIdLog(SysIdRoutineLog log) {
-    if (!isSysIdEnabled()) return;
+    if (!isSysIdEnabled())
+      return;
     log.motor("shooter")
         .voltage(Volts.of(getAppliedVolts()))
         .angularPosition(Rotations.of(0.0))
@@ -233,14 +240,39 @@ public class ShooterSubsystem extends SubsystemBase {
 
     double rpm = getVelocityRpm();
 
-    // Ready logic
-    boolean inTol =
-        targetRpm > 1.0
-            && Math.abs(rpm - targetRpm) <= Constants.OperatorConstants.Shooter.READY_TOLERANCE_RPM;
+    /*
+     * // Ready logic PREVIOUS
+     * boolean inTol = targetRpm > 1.0
+     * && Math.abs(rpm - targetRpm) <=
+     * Constants.OperatorConstants.Shooter.READY_TOLERANCE_RPM;
+     * 
+     * double now = Timer.getFPGATimestamp();
+     * if (inTol) {
+     * if (readySince <= 0.0)
+     * readySince = now;
+     * if (!wasReady && (now - readySince) >=
+     * Constants.OperatorConstants.Shooter.READY_MIN_TIME_S) {
+     * wasReady = true;
+     * }
+     * } else {
+     * readySince = 0.0;
+     * wasReady = false;
+     * }
+     */
 
+    // Ready logic (windowed mean/stddev)
+    updateReadinessStats(rpm);
+
+    boolean readyNow = targetRpm > 1.0
+        && Math.abs(rpmMean - targetRpm) <= Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE
+        && rpmStdDev <= Constants.OperatorConstants.Shooter.READY_STDDEV_MAX;
+
+    // Optional: keep your existing READY_MIN_TIME_S behavior *on top* of windowed
+    // ready
     double now = Timer.getFPGATimestamp();
-    if (inTol) {
-      if (readySince <= 0.0) readySince = now;
+    if (readyNow) {
+      if (readySince <= 0.0)
+        readySince = now;
       if (!wasReady && (now - readySince) >= Constants.OperatorConstants.Shooter.READY_MIN_TIME_S) {
         wasReady = true;
       }
@@ -266,9 +298,40 @@ public class ShooterSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Shooter/BatteryVolts", RobotController.getBatteryVoltage());
   }
 
+  private void updateReadinessStats(double rpm) {
+    rpmWindow[rpmWindowIndex] = rpm;
+    rpmWindowIndex = (rpmWindowIndex + 1) % rpmWindow.length;
+    if (rpmWindowCount < rpmWindow.length)
+      rpmWindowCount++;
+
+    if (rpmWindowCount < rpmWindow.length) {
+      rpmMean = rpm;
+      rpmStdDev = 999.0;
+      wasReady = false;
+      return;
+    }
+
+    double sum = 0.0;
+    for (double v : rpmWindow)
+      sum += v;
+    rpmMean = sum / rpmWindow.length;
+
+    double var = 0.0;
+    for (double v : rpmWindow) {
+      double d = v - rpmMean;
+      var += d * d;
+    }
+    rpmStdDev = Math.sqrt(var / rpmWindow.length);
+
+    SmartDashboard.putNumber("Shooter/RPM_Mean200ms", rpmMean);
+    SmartDashboard.putNumber("Shooter/RPM_StdDev200ms", rpmStdDev);
+
+  }
+
   @Override
   public void simulationPeriodic() {
-    if (!isSim) return;
+    if (!isSim)
+      return;
 
     final double dt = 0.02;
 

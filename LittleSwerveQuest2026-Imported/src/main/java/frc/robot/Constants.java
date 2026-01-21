@@ -346,12 +346,12 @@ public final class Constants {
       public static final double STATOR_CURRENT_LIMIT_A = 60.0;
 
       /** Velocity control gains (placeholders). */
-      public static final double kP = 0.146; //0.145
+      public static final double kP = 0.120; //0.12
       public static final double kI = 0.0;
-      public static final double kD = 0.001; //0.0
-      public static final double kS = 0.2;
-      public static final double kV = 0.13125; // Try this tomorrow: 0.133
-      public static final double kA = 0.0; //0.0
+      public static final double kD = 0.0; //0.00
+      public static final double kS = 0.18; //0.18
+      public static final double kV = 0.13125; // Try this tomorrow: 0.13125
+      public static final double kA = 0.01; //0.0
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 3000.0;
@@ -364,6 +364,12 @@ public final class Constants {
       /** Simulation: motor rotations / wheel rotations. 1.0 for your 1:1 belt. */
       public static final double SIM_GEAR_RATIO = 1.0;
       public static final double SIM_J_KGM2 = 0.02;
+
+      // ChatGPT constants for updated readiness logic
+      public static final int READY_WINDOW_SAMPLES = 10;     // 200ms @ 20ms loop
+      public static final double READY_RPM_TOLERANCE = 40.0;
+      public static final double READY_STDDEV_MAX = 30.0;
+
     }
 
     /** SysId gating + default parameters. */

@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.IntakeConstants;
 
 public class HopperSubsystem extends SubsystemBase {
-  WPI_VictorSPX hopperMotor = new WPI_VictorSPX(IntakeConstants.hopperMotorID);
+  WPI_VictorSPX hopperMotor = new WPI_VictorSPX(IntakeConstants.launcherMotorID);
   /** Creates a new HopperSubsystem. */
   public HopperSubsystem() {
     configureMotors();

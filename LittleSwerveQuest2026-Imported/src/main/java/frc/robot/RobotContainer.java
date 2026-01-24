@@ -7,9 +7,15 @@ package frc.robot;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.events.EventTrigger;
+import com.pathplanner.lib.path.GoalEndState;
+import com.pathplanner.lib.path.IdealStartingState;
 import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.path.Waypoint;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -26,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
@@ -76,12 +83,15 @@ public class RobotContainer {
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
+  public static final Pose2d randomStartPose = new Pose2d(1.510, 4.978, new Rotation2d());
+  public static final Pose2d randomEndPose = new Pose2d(4.00, 6.00, new Rotation2d());
   private static String lastAutoPathPreview = "";
 
   public RobotContainer() {
     // Runtime gate for SysId routines. Must be enabled intentionally.
     SmartDashboard.setDefaultBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
 
+    new EventTrigger("TrajectoryOnTheFly").onTrue(runTrajectory2Poses(randomStartPose, randomEndPose, true));
     configureBindings();
     testTrajectory();
     setYaws();
@@ -97,11 +107,13 @@ public class RobotContainer {
   }
 
   public static void AutonomousConfigure() {
+    SignalLogger.start();
     // port autonomous routines as commands
     // sets the default option of the SendableChooser to the simplest autonomous
     // command. (from touching the hub, drive until outside the tarmac zone)
     selectAutoListBasedOnATPose(driveSubsystem.getState().Pose);
     SmartDashboard.putData(autoChooser);
+    autoChooser.addOption("TrajectoryOnTheFly", runTrajectory2Poses(randomStartPose, randomEndPose, true));
   }
 
   public static void selectAutoListBasedOnATPose(Pose2d robotPose2d) {
@@ -228,6 +240,30 @@ public class RobotContainer {
     // .onFalse(stopRobotCommand());
   }
 
+  public static Command runTrajectory2Poses(Pose2d startPose, Pose2d endPose,
+      boolean shouldResetOdometryToStartingPose) {
+    try {
+      List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
+
+      PathPlannerPath path = new PathPlannerPath(
+          waypoints,
+          AutoConstants.pathCconstraints,
+          new IdealStartingState(0, startPose.getRotation()),
+          new GoalEndState(0, endPose.getRotation()));
+      path.preventFlipping = true;
+      driveSubsystem.setOdometryPoseToSpecificPose(startPose); // reset odometry, as PP may not do so
+      if (!shouldResetOdometryToStartingPose) {
+        return AutoBuilder.followPath(path);
+      } else { // reset odometry the right way
+        System.out.println("== Driving from "+startPose+" to "+endPose);
+        return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+      }
+    } catch (Exception e) {
+      DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
+      return Commands.none();
+    }
+  }
+  
   public Command stopRobotCommand() {
     System.out.println("***Stopping Robot");
     return driveSubsystem.applyRequest(() -> driveSubsystem.getDrive().withVelocityX(0) // Drive forward with negative Y

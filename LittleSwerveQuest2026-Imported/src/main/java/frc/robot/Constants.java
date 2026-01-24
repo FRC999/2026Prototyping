@@ -24,12 +24,14 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
+import com.pathplanner.lib.path.PathConstraints;
 
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.OperatorConstants.SwerveConstants;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -58,6 +60,33 @@ public final class Constants {
 		public static final boolean chassis = true;
 		public static final boolean ll = false;
 		public static final boolean questnav = false;
+	}
+
+  public static final class AutoConstants {
+		public static PathConstraints pathCconstraints = new PathConstraints(
+			SwerveConstants.MaxSpeed,
+			SwerveConstants.maxAcceleration,
+			SwerveConstants.MaxAngularRate,
+			SwerveConstants.maxAngularAcceleration,
+			12, // Volts - nomonal battery
+			false // constraints shold not be unlimited
+			);
+
+		public static PathConstraints testPathCconstraints = new PathConstraints(
+				2.5,
+				2.0,
+				SwerveConstants.MaxAngularRate,
+				SwerveConstants.maxAngularAcceleration,
+				12, // Volts - nomonal battery
+				false // constraints shold not be unlimited
+				);
+
+		public static enum autoPoses {
+
+			//
+
+		}
+		public static final double panReefTolerance = 0.02; // tolerance in meters for reef panning
 	}
   
   public static class OperatorConstants {
@@ -101,6 +130,9 @@ public final class Constants {
 
       public static final double MaxSpeed = 5.21; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s
+      public static final double maxAngularAcceleration = 37.6992; // this is max angular acceleration units:
+																		// rad/s^2
+      public static final double maxAcceleration = 41.68; // this is Max linear acceleration units: m/s^2
       public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 

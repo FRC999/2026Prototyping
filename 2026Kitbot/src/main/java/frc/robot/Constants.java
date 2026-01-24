@@ -33,6 +33,11 @@ public final class Constants {
     public final static int intakeMotorID = 11;
     public final static int launcherMotorID = 10;
     public final static double intakeSpeed = 1.0;
+    public static final double unjamSpeed = 0.6;
+    public static final double intakeHopperShootSpeed = 1.0;
+    public static final double hopperSpeed = 1.0;
+    public static final double intakeReloadSpeed = 0.6;
+    public static final double intakeImmShootSpeed = 1.0;
   }
 
 }

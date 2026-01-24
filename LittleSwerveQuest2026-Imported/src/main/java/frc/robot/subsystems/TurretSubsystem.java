@@ -351,16 +351,7 @@ public class TurretSubsystem extends SubsystemBase {
     double absDeg = getAbsDegWrapped();
     double delta = ANGLE_SIGN * wrapToPlusMinus180(absDeg - lastAbsDegWrapped);
 
-    double nextContinuous = continuousDeg + delta;
-																		 
-							   
-															
-			
-															   
-																		 
-							   
-	 
-   
+    double nextContinuous = continuousDeg + delta;			
 
     // Hard safety clamp to +/- MAX
     nextContinuous = clamp(
@@ -369,9 +360,6 @@ public class TurretSubsystem extends SubsystemBase {
         Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
 
     estVelDegPerSec = (nextContinuous - lastContinuousDeg) / dt;
-							   
-									
-   
 
     continuousDeg = nextContinuous;
     lastContinuousDeg = continuousDeg;

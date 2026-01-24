@@ -117,11 +117,16 @@ public class RobotContainer {
 
     AutonomousConfigure();
 
-    // if (RobotBase.isSimulation()) {
-    //   new JoystickButton().onTrue(
-    //     new ShootFuelSimCommand(driveSubsystem, turretSubsystem, shooterSubsystem)
-    // );
-    //}
+    if (RobotBase.isSimulation()) {
+      configureSimulation();
+    }
+
+
+    if (RobotBase.isSimulation()) {
+      new JoystickButton(xboxDriveController, 9).onTrue(
+        new ShootFuelSimCommand(driveSubsystem, turretSubsystem, shooterSubsystem)
+    );
+    }
 
 
   }

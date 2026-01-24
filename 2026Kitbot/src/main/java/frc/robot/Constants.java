@@ -17,26 +17,22 @@ public final class Constants {
     public static final int kDriverControllerPort = 0;
   }
   public static class DriveConstants {
-    public final static int leftLeadCANID = 14;
-    public final static int leftFollowCANID = 13;
     public final static int rightLeadCANID = 16;
     public final static int rightFollowCANID = 15;
+    public final static int leftLeadCANID = 14;
+    public final static int leftFollowCANID = 13;
 
-    public final static boolean leftLeadInverted = false;
-    public final static boolean leftFollowInverted = false;
     public final static boolean rightLeadInverted = false;
     public final static boolean rightFollowInverted = false;
+    public final static boolean leftLeadInverted = false;
+    public final static boolean leftFollowInverted = false;
+
   }
 
   public static class IntakeConstants{
     public final static int intakeMotorID = 11;
-    public final static int hopperMotorID = 10;
-    public final static double unjamSpeed = 0.6;
-    public final static double hopperSpeed = 1.0;
-    public final static double intakeReloadSpeed = 0.6;
-    public final static double intakeImmShootSpeed = 1.0;
-    public final static double intakeHopperShootSpeed = 1.0;
-    ;
+    public final static int launcherMotorID = 10;
+    public final static double intakeSpeed = 1.0;
   }
 
 }

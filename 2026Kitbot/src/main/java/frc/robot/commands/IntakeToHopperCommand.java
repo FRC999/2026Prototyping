@@ -21,8 +21,9 @@ public class IntakeToHopperCommand extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    RobotContainer.intakeShooterSubsystem.setIntakeMotor(IntakeConstants.intakeSpeed);
-    RobotContainer.hopperSubsystem.setHopperMotor(IntakeConstants.intakeSpeed);
+    System.out.println("This is the Left Trigger");
+    RobotContainer.intakeShooterSubsystem.setIntakeMotor(IntakeConstants.intakeReloadSpeed);
+    RobotContainer.hopperSubsystem.setHopperMotor(IntakeConstants.hopperSpeed);
   }
 
   // Called every time the scheduler runs while the command is scheduled.

@@ -20,8 +20,9 @@ public class EmptyHopperCommand extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    RobotContainer.intakeShooterSubsystem.setIntakeMotor(-IntakeConstants.intakeSpeed);
-    RobotContainer.hopperSubsystem.setHopperMotor(-IntakeConstants.intakeSpeed);
+    System.out.println("This is Button B");
+    RobotContainer.intakeShooterSubsystem.setIntakeMotor(-IntakeConstants.unjamSpeed);
+    RobotContainer.hopperSubsystem.setHopperMotor(-IntakeConstants.unjamSpeed);
   }
 
   // Called every time the scheduler runs while the command is scheduled.

@@ -20,7 +20,8 @@ public class IntakeToShooterCommand extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    RobotContainer.intakeShooterSubsystem.setIntakeMotor(IntakeConstants.intakeSpeed);
+    System.out.println("This is the Right Bumper");
+    RobotContainer.intakeShooterSubsystem.setIntakeMotor(IntakeConstants.intakeImmShootSpeed);
     RobotContainer.hopperSubsystem.setHopperMotor(0);
   }
 

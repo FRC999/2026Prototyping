@@ -41,6 +41,8 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.OdometryConstants;
 import frc.robot.RobotContainer;
 
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+
 /**
  * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
  * Subsystem so it can easily be used in command-based projects.
@@ -61,6 +63,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFXS, TalonFXS, CANcode
     private double lastSimTime;
     private boolean isRobotCentric = false;
     Pigeon2 imu;
+
+    
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -146,6 +150,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFXS, TalonFXS, CANcode
                     },
                     null,
                     this));
+
+                    
 
     /* The SysId routine to test */
     private SysIdRoutine sysIdRoutineToApply = sysIdRoutineTranslation;
@@ -388,6 +394,15 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFXS, TalonFXS, CANcode
     public void addVisionMeasurement(Pose2d visionRobotPoseMeters, double timestampSeconds) {
         super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds));
     }
+
+
+    public ChassisSpeeds getFieldSpeeds() {
+        // Phoenix6 SwerveDriveState.Speeds is typically robot-relative.
+        // Convert to field-relative using your current pose rotation.
+        ChassisSpeeds robotRel = this.getState().Speeds;
+        return ChassisSpeeds.fromRobotRelativeSpeeds(robotRel, getPose().getRotation());
+    }
+
 
     /**
      * Adds a vision measurement to the Kalman Filter. This will correct the

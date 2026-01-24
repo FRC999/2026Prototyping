@@ -23,6 +23,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -56,6 +57,13 @@ import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
+import frc.robot.util.FuelSim;
+import frc.robot.util.TurretSimVisualizer;
+
+import edu.wpi.first.wpilibj.RobotBase;
+import frc.robot.commands.ShootFuelSimCommand;
+
+
 
 public class RobotContainer {
 
@@ -64,6 +72,8 @@ public class RobotContainer {
 
   /* Setting up bindings for necessary control of the swerve drive platform */
   // Use open-loop control for drive motors
+  private TurretSimVisualizer turretSimVisualizer;
+
   private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
   private final Joystick turretStick =  new Joystick(0);
@@ -87,6 +97,8 @@ public class RobotContainer {
   public static final Pose2d randomEndPose = new Pose2d(4.00, 6.00, new Rotation2d());
   private static String lastAutoPathPreview = "";
 
+  
+
   public RobotContainer() {
     // Runtime gate for SysId routines. Must be enabled intentionally.
     SmartDashboard.setDefaultBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
@@ -104,7 +116,37 @@ public class RobotContainer {
     FollowPathCommand.warmupCommand().schedule();
 
     AutonomousConfigure();
+
+    // if (RobotBase.isSimulation()) {
+    //   new JoystickButton().onTrue(
+    //     new ShootFuelSimCommand(driveSubsystem, turretSubsystem, shooterSubsystem)
+    // );
+    //}
+
+
   }
+
+  public TurretSimVisualizer getTurretSimVisualizer() {
+    return turretSimVisualizer;
+  }
+
+  private void configureSimulation() {
+  // Start FuelSim (Hammerheads style)
+  FuelSim sim = FuelSim.getInstance();
+  sim.spawnStartingFuel(); // optional; delete if you don’t want balls pre-spawned
+
+  sim.registerRobot(
+      Constants.SimConstants.ROBOT_WIDTH_M,
+      Constants.SimConstants.ROBOT_LENGTH_M,
+      Constants.SimConstants.BUMPER_HEIGHT_M,
+      driveSubsystem::getPose,
+      driveSubsystem::getFieldSpeeds);
+
+  sim.start();
+
+  // Turret visualization in AdvantageScope
+  turretSimVisualizer = new TurretSimVisualizer(driveSubsystem, turretSubsystem);
+}
 
   public static void AutonomousConfigure() {
     SignalLogger.start();

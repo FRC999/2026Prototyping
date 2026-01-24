@@ -62,6 +62,32 @@ public final class Constants {
 		public static final boolean questnav = false;
 	}
 
+  public static final class SimConstants {
+  // Robot size in meters (set to your actual bumper box)
+  public static final double ROBOT_WIDTH_M  = 0.85;
+  public static final double ROBOT_LENGTH_M = 0.85;
+  public static final double BUMPER_HEIGHT_M = 0.18;
+
+  // Trajectory visualization
+  public static final int TRAJ_POINTS = 25;
+  public static final double TRAJ_DT_S = 0.04;
+  public static final double TRAJ_DISPLAY_V_MPS = 12.0;
+
+  public static final double TURRET_X_M = 0.0;
+  public static final double TURRET_Y_M = 0.0;
+  public static final double TURRET_Z_M = 0.35;
+
+  public static final double MUZZLE_X_M = 0.25;
+  public static final double MUZZLE_Y_M = 0.0;
+  public static final double MUZZLE_Z_M = 0.10;
+
+  public static final double SHOOTER_WHEEL_RADIUS_M = 0.050;
+  public static final double SHOOTER_TO_BALL_EFFICIENCY = 0.65;
+  public static final double SHOT_UP_V_MPS = 2.0;
+
+}
+
+
   public static final class AutoConstants {
 		public static PathConstraints pathCconstraints = new PathConstraints(
 			SwerveConstants.MaxSpeed,

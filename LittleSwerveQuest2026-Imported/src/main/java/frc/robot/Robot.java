@@ -53,6 +53,8 @@ public class Robot extends TimedRobot {
       m_autonomousCommand.schedule();
     }
     RobotContainer.setIfAllianceRed();
+
+    
   }
 
   @Override

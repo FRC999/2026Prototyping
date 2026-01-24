@@ -49,72 +49,103 @@ public final class Constants {
 
   public static final class EnabledSubsystems {
 
-		public static final boolean chasis = true;
-		public static final boolean ll = true;
-		public static final boolean questnav = true;
-	}
+    public static final boolean chasis = true;
+    public static final boolean ll = true;
+    public static final boolean questnav = true;
+  }
 
-	public static final class DebugTelemetrySubsystems {
-		public static final boolean odometry = false;
-		public static final boolean imu = true;
-		public static final boolean chassis = true;
-		public static final boolean ll = false;
-		public static final boolean questnav = false;
-	}
+  public static final class DebugTelemetrySubsystems {
+    public static final boolean odometry = false;
+    public static final boolean imu = true;
+    public static final boolean chassis = true;
+    public static final boolean ll = false;
+    public static final boolean questnav = false;
+  }
 
   public static final class SimConstants {
-  // Robot size in meters (set to your actual bumper box)
-  public static final double ROBOT_WIDTH_M  = 0.85;
-  public static final double ROBOT_LENGTH_M = 0.85;
-  public static final double BUMPER_HEIGHT_M = 0.18;
+    // ---------------- Hub target (SIM ONLY) ----------------
+    // Set these to your field’s hub center in WPILib field coordinates (meters).
+    // If you don't know yet, start with something reasonable and adjust later.
+    public static final double HUB_CENTER_X_M = 4.62534;
+    public static final double HUB_CENTER_Y_M = 4.03479;
 
-  // Trajectory visualization
-  public static final int TRAJ_POINTS = 25;
-  public static final double TRAJ_DT_S = 0.04;
-  public static final double TRAJ_DISPLAY_V_MPS = 12.0;
+    // Height to aim at (center of opening). Tune to match your "hub" in sim.
+    public static final double HUB_CENTER_Z_M = 1.8288;
 
-  public static final double TURRET_X_M = 0.0;
-  public static final double TURRET_Y_M = 0.0;
-  public static final double TURRET_Z_M = 0.35;
+    // ---------------- Shooter pitch limits (SIM ONLY) ----------------
+    public static final double PITCH_MIN_DEG = 10.0;
+    public static final double PITCH_MAX_DEG = 70.0;
 
-  public static final double MUZZLE_X_M = 0.25;
-  public static final double MUZZLE_Y_M = 0.0;
-  public static final double MUZZLE_Z_M = 0.10;
+    // ---------------- Ballistic solver limits ----------------
+    // time-of-flight search window (seconds)
+    public static final double TOF_MIN_S = 0.25;
+    public static final double TOF_MAX_S = 2.50;
+    public static final double TOF_STEP_S = 0.01;
 
-  public static final double SHOOTER_WHEEL_RADIUS_M = 0.050;
-  public static final double SHOOTER_TO_BALL_EFFICIENCY = 0.65;
-  public static final double SHOT_UP_V_MPS = 2.0;
+    // safety: cap the relative muzzle speed we are willing to "command" (m/s)
+    public static final double MUZZLE_SPEED_MAX_MPS = 25.0;
 
-}
+    // If the best feasible solution is still too fast, we still shoot,
+    // but we clamp to this speed to prevent insane values.
+    public static final double MUZZLE_SPEED_CLAMP_MPS = 20.0;
 
+    // When we spawn the fuel, we use the computed ballistic pitch, so you can set
+    // this to 0.
+    // (If you want extra arc margin, set to ~0.5..2.0)
+    public static final double SHOT_EXTRA_UP_V_MPS = 0.0;
+
+    // Robot size in meters (set to your actual bumper box)
+    public static final double ROBOT_WIDTH_M = 0.85;
+    public static final double ROBOT_LENGTH_M = 0.85;
+    public static final double BUMPER_HEIGHT_M = 0.18;
+
+    // Trajectory visualization
+    public static final int TRAJ_POINTS = 25;
+    public static final double TRAJ_DT_S = 0.04;
+    public static final double TRAJ_DISPLAY_V_MPS = 12.0;
+
+    public static final double TURRET_X_M = 0.0;
+    public static final double TURRET_Y_M = 0.0;
+    public static final double TURRET_Z_M = 0.35;
+
+    public static final double MUZZLE_X_M = 0.25;
+    public static final double MUZZLE_Y_M = 0.0;
+    public static final double MUZZLE_Z_M = 0.10;
+
+    public static final double SHOOTER_WHEEL_RADIUS_M = 0.050;
+    public static final double SHOOTER_TO_BALL_EFFICIENCY = 0.65;
+    public static final double SHOT_UP_V_MPS = 2.0;
+
+  }
 
   public static final class AutoConstants {
-		public static PathConstraints pathCconstraints = new PathConstraints(
-			SwerveConstants.MaxSpeed,
-			SwerveConstants.maxAcceleration,
-			SwerveConstants.MaxAngularRate,
-			SwerveConstants.maxAngularAcceleration,
-			12, // Volts - nomonal battery
-			false // constraints shold not be unlimited
-			);
+    public static PathConstraints pathCconstraints = new PathConstraints(
+        SwerveConstants.MaxSpeed,
+        SwerveConstants.maxAcceleration,
+        SwerveConstants.MaxAngularRate,
+        SwerveConstants.maxAngularAcceleration,
+        12, // Volts - nomonal battery
+        false // constraints shold not be unlimited
+    );
 
-		public static PathConstraints testPathCconstraints = new PathConstraints(
-				2.5,
-				2.0,
-				SwerveConstants.MaxAngularRate,
-				SwerveConstants.maxAngularAcceleration,
-				12, // Volts - nomonal battery
-				false // constraints shold not be unlimited
-				);
+    public static PathConstraints testPathCconstraints = new PathConstraints(
+        2.5,
+        2.0,
+        SwerveConstants.MaxAngularRate,
+        SwerveConstants.maxAngularAcceleration,
+        12, // Volts - nomonal battery
+        false // constraints shold not be unlimited
+    );
 
-		public static enum autoPoses {
+    public static enum autoPoses {
 
-			//
+      //
 
-		}
-		public static final double panReefTolerance = 0.02; // tolerance in meters for reef panning
-	}
-  
+    }
+
+    public static final double panReefTolerance = 0.02; // tolerance in meters for reef panning
+  }
+
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
 
@@ -127,42 +158,42 @@ public final class Constants {
         XBOX_ONEDRIVE // RIghtJ F/B/L/R, LeftJ - rotation
       }
 
-
-
-      public static record ControllerDevice(int portNumber, ControllerDeviceType controllerDeviceType, 
-              double deadbandX, double deadbandY, double deadbandOmega, 
-              boolean cubeControllerLeftStick, boolean cubeControllerRightStick) {}
+      public static record ControllerDevice(int portNumber, ControllerDeviceType controllerDeviceType,
+          double deadbandX, double deadbandY, double deadbandOmega,
+          boolean cubeControllerLeftStick, boolean cubeControllerRightStick) {
+      }
 
       public static ControllerDevice XBOX_CONTROLLER = new ControllerDevice(
-        5, 
-        ControllerDeviceType.XBOX, 
-        0.03, 
-        0.05, 
-        0.03, 
-        false, 
-        false);
+          5,
+          ControllerDeviceType.XBOX,
+          0.03,
+          0.05,
+          0.03,
+          false,
+          false);
 
-   
     }
+
     /** Swerve-wide constants and module mappings */
     public static final class SwerveConstants {
 
       public static final Distance kXPos = Inches.of(11.75);
       public static final Distance kYPos = Inches.of(11.75);
 
-      public static final double CHASSIS_POSE_HISTORY_TIME = 0.6; //seconds
+      public static final double CHASSIS_POSE_HISTORY_TIME = 0.6; // seconds
 
       public static final boolean CTR_ODOMETRY_UPDATE_FROM_QUEST = true;
 
       public static final double MaxSpeed = 5.21; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s
       public static final double maxAngularAcceleration = 37.6992; // this is max angular acceleration units:
-																		// rad/s^2
+                                                                   // rad/s^2
       public static final double maxAcceleration = 41.68; // this is Max linear acceleration units: m/s^2
-      public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
-      public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
+      public static final double DeadbandRatioLinear = 0.05; // determined by calibration method
+      public static final double DeadbandRatioAngular = 0.05; // determined by calibration method
 
-      //public static final CANBus kCANBus = new CANBus("canivore1", "./logs/example.hoot"); // 2025
+      // public static final CANBus kCANBus = new CANBus("canivore1",
+      // "./logs/example.hoot"); // 2025
       public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2024 no canivore
 
       public static final Pigeon2Configuration pigeonConfigs = null;
@@ -190,13 +221,13 @@ public final class Constants {
       public static final double kCoupleRatio = 2.8333333333333335;
       public static final ClosedLoopOutputType kDriveClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
-      public static final double kDriveGearRatio =  6.538461538461539;
+      public static final double kDriveGearRatio = 6.538461538461539;
       public static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
       public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFXS_NEO_JST;
-      
-      public static final int kPigeonId = 15; // 
-      //public static final int kPigeonId = 15; // 2024
-      
+
+      public static final int kPigeonId = 15; //
+      // public static final int kPigeonId = 15; // 2024
+
       public static final Current kSlipCurrent = Amps.of(80.0);
       public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(4.78);
       public static final ClosedLoopOutputType kSteerClosedLoopOutput = ClosedLoopOutputType.Voltage;
@@ -233,104 +264,113 @@ public final class Constants {
           .withPigeon2Id(kPigeonId)
           .withPigeon2Configs(pigeonConfigs);
 
-      public static record SwerveModuleConstantsRecord(int driveMotorID, int angleMotorID, int cancoderID, double angleOffset,
-        boolean driveMotorInverted, boolean angleMotorInverted, boolean cancoderInverted) {}
+      public static record SwerveModuleConstantsRecord(int driveMotorID, int angleMotorID, int cancoderID,
+          double angleOffset,
+          boolean driveMotorInverted, boolean angleMotorInverted, boolean cancoderInverted) {
+      }
 
+      // 2024 SWERVE CONSTANTS
 
-        // 2024 SWERVE CONSTANTS
-        
-        /*public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord(
-          1, 
-          2, 
-          20, 
-          -0.282470578125, 
-          false, 
-          true, 
-          false);
+      /*
+       * public static final SwerveModuleConstantsRecord MOD0 = new
+       * SwerveModuleConstantsRecord(
+       * 1,
+       * 2,
+       * 20,
+       * -0.282470578125,
+       * false,
+       * true,
+       * false);
+       * 
+       * public static final SwerveModuleConstantsRecord MOD1 = new
+       * SwerveModuleConstantsRecord(
+       * 3,
+       * 4,
+       * 21,
+       * 0.029541015625,
+       * true,
+       * true,
+       * false);
+       * 
+       * public static final SwerveModuleConstantsRecord MOD2 = new
+       * SwerveModuleConstantsRecord(
+       * 5,
+       * 6,
+       * 22,
+       * 0.317138875,
+       * false,
+       * true,
+       * false);
+       * 
+       * public static final SwerveModuleConstantsRecord MOD3 = new
+       * SwerveModuleConstantsRecord(
+       * 7,
+       * 8,
+       * 23,
+       * 0.044677734375,
+       * true,
+       * true,
+       * false);
+       */
 
-        public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord(
-          3, 
-          4, 
-          21, 
-          0.029541015625, 
-          true, 
-          true, 
-          false);
+      // 2025 Constants
 
-        public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord(
-          5, 
-          6, 
-          22, 
-          0.317138875, 
-          false, 
-          true, 
-          false);
+      public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
+          8, // driveMotorID
+          7, // angleMotorID
+          7, // CanCoder Id
+          // -0.296142578125, // angleOffset of cancoder to mark zero-position
+          -0.33837890625 + 0.5 - 0.025391 - 0.5, // angleOffset of cancoder to mark zero-position
+          false, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
 
-        public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord(
-          7, 
-          8, 
-          23, 
-          0.044677734375, 
-          true, 
-          true, 
-          false); 
-        */
+      public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
+          2, // driveMotorID
+          1, // angleMotorID
+          1, // CanCoder Id
+          // 0.041015625, // angleOffset of cancoder to mark zero-position
+          -0.361328125 + 0.013 - 0.5, // angleOffset of cancoder to mark zero-position
+          false, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
 
-          // 2025 Constants
-          
-          public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
-						8, // driveMotorID
-						7, // angleMotorID
-						7, // CanCoder Id
-						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						-0.33837890625 + 0.5 - 0.025391 - 0.5, // angleOffset of cancoder to mark zero-position
-						false, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
-       
-        public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
-						2, // driveMotorID
-						1, // angleMotorID
-						1, // CanCoder Id
-						// 0.041015625, // angleOffset of cancoder to mark zero-position
-						-0.361328125 + 0.013 - 0.5, // angleOffset of cancoder to mark zero-position
-						false, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
-
-        public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
-						6, // driveMotorID
-						5, // angleMotorID
-						5, // CanCoder Id
-						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						0.742431640625 + 0.025391 - 0.5, // angleOffset of cancoder to mark zero-position
-						false, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
-        public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
-						4, // driveMotorID
-						3, // angleMotorID
-						3, // CanCoder Id
-						// 0.326171875, // angleOffset of cancoder to mark zero-position
-						//0.0576171875, // angleOffset of cancoder to mark zero-position
-						-0.298828125 -0.5, // angleOffset of cancoder to mark zero-position
-						false, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
-
+      public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
+          6, // driveMotorID
+          5, // angleMotorID
+          5, // CanCoder Id
+          // -0.296142578125, // angleOffset of cancoder to mark zero-position
+          0.742431640625 + 0.025391 - 0.5, // angleOffset of cancoder to mark zero-position
+          false, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
+      public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
+          4, // driveMotorID
+          3, // angleMotorID
+          3, // CanCoder Id
+          // 0.326171875, // angleOffset of cancoder to mark zero-position
+          // 0.0576171875, // angleOffset of cancoder to mark zero-position
+          -0.298828125 - 0.5, // angleOffset of cancoder to mark zero-position
+          false, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
 
     }
 
     /**
      * Turret prototype (Talon FXS + absolute PWM encoder).
      *
-     * <p>We enforce the umbilical safety limits in software (multi-turn tracking) while still
-     * using Phoenix 6 hardware PID. Continuous wrap may be enabled/disabled at runtime by the
-     * TurretSubsystem depending on whether the shortest path would violate the software limits.
+     * <p>
+     * We enforce the umbilical safety limits in software (multi-turn tracking)
+     * while still
+     * using Phoenix 6 hardware PID. Continuous wrap may be enabled/disabled at
+     * runtime by the
+     * TurretSubsystem depending on whether the shortest path would violate the
+     * software limits.
      */
     public static final class Turret {
       public static final int CAN_ID = 21;
@@ -344,7 +384,8 @@ public final class Constants {
       public static final int ABS_FORWARD_TICKS = 1282;
 
       /**
-       * Boot assumption: at robot power-on, turret is within +/- 180 degrees of forward.
+       * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
+       * forward.
        * Used to seed the software unwrapped angle.
        */
       public static final double BOOT_MAX_ABS_DEG = 180.0;
@@ -363,7 +404,6 @@ public final class Constants {
        * needed on-robot.
        */
       public static final boolean MOTOR_INVERTED = true;
-																					
 
       /** If angle changes the wrong direction relative to motor output, flip this. */
       public static final boolean SENSOR_PHASE_INVERTED = false;
@@ -404,12 +444,12 @@ public final class Constants {
       public static final double STATOR_CURRENT_LIMIT_A = 60.0;
 
       /** Velocity control gains (placeholders). */
-      public static final double kP = 0.120; //0.12
+      public static final double kP = 0.120; // 0.12
       public static final double kI = 0.0;
-      public static final double kD = 0.0; //0.00
-      public static final double kS = 0.18; //0.18
+      public static final double kD = 0.0; // 0.00
+      public static final double kS = 0.18; // 0.18
       public static final double kV = 0.13125; // Try this tomorrow: 0.13125
-      public static final double kA = 0.01; //0.0
+      public static final double kA = 0.01; // 0.0
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 3000.0;
@@ -424,7 +464,7 @@ public final class Constants {
       public static final double SIM_J_KGM2 = 0.02;
 
       // ChatGPT constants for updated readiness logic
-      public static final int READY_WINDOW_SAMPLES = 10;     // 200ms @ 20ms loop
+      public static final int READY_WINDOW_SAMPLES = 10; // 200ms @ 20ms loop
       public static final double READY_RPM_TOLERANCE = 40.0;
       public static final double READY_STDDEV_MAX = 30.0;
 
@@ -451,12 +491,9 @@ public final class Constants {
     }
 
   }
-  
 
-  public static final class PathPlannerConstants{
+  public static final class PathPlannerConstants {
     public static final boolean shouldFlipTrajectoryOnRed = true;
   }
-
-  
 
 }

@@ -58,12 +58,11 @@ import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.util.FuelSim;
+import frc.robot.util.ShooterHoodSim;
 import frc.robot.util.TurretSimVisualizer;
 
 import edu.wpi.first.wpilibj.RobotBase;
-import frc.robot.commands.ShootFuelSimCommand;
-
-
+import frc.robot.commands.SimAimAndShootHubCommand;
 
 public class RobotContainer {
 
@@ -73,10 +72,11 @@ public class RobotContainer {
   /* Setting up bindings for necessary control of the swerve drive platform */
   // Use open-loop control for drive motors
   private TurretSimVisualizer turretSimVisualizer;
+  private ShooterHoodSim shooterHoodSim;
 
   private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
-  private final Joystick turretStick =  new Joystick(0);
+  private final Joystick turretStick = new Joystick(0);
   private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
@@ -93,11 +93,9 @@ public class RobotContainer {
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
-  public static final Pose2d randomStartPose = new Pose2d(1.510, 4.978, new Rotation2d());
-  public static final Pose2d randomEndPose = new Pose2d(4.00, 6.00, new Rotation2d());
+  public static final Pose2d randomStartPose = new Pose2d(0.429, 0.639, new Rotation2d());
+  public static final Pose2d randomEndPose = new Pose2d(-1, 4.096, new Rotation2d());
   private static String lastAutoPathPreview = "";
-
-  
 
   public RobotContainer() {
     // Runtime gate for SysId routines. Must be enabled intentionally.
@@ -121,13 +119,16 @@ public class RobotContainer {
       configureSimulation();
     }
 
-
     if (RobotBase.isSimulation()) {
-      new JoystickButton(xboxDriveController, 9).onTrue(
-        new ShootFuelSimCommand(driveSubsystem, turretSubsystem, shooterSubsystem)
-    );
+      new JoystickButton(xboxDriveController, 9).whileTrue(
+          new SimAimAndShootHubCommand(
+              driveSubsystem,
+              turretSubsystem,
+              shooterSubsystem,
+              shooterHoodSim,
+              0.50 // hold aimed for 0.5s after firing
+          ));
     }
-
 
   }
 
@@ -136,22 +137,23 @@ public class RobotContainer {
   }
 
   private void configureSimulation() {
-  // Start FuelSim (Hammerheads style)
-  FuelSim sim = FuelSim.getInstance();
-  sim.spawnStartingFuel(); // optional; delete if you don’t want balls pre-spawned
+    // Start FuelSim (Hammerheads style)
+    FuelSim sim = FuelSim.getInstance();
+    sim.spawnStartingFuel(); // optional; delete if you don’t want balls pre-spawned
 
-  sim.registerRobot(
-      Constants.SimConstants.ROBOT_WIDTH_M,
-      Constants.SimConstants.ROBOT_LENGTH_M,
-      Constants.SimConstants.BUMPER_HEIGHT_M,
-      driveSubsystem::getPose,
-      driveSubsystem::getFieldSpeeds);
+    sim.registerRobot(
+        Constants.SimConstants.ROBOT_WIDTH_M,
+        Constants.SimConstants.ROBOT_LENGTH_M,
+        Constants.SimConstants.BUMPER_HEIGHT_M,
+        driveSubsystem::getPose,
+        driveSubsystem::getFieldSpeeds);
 
-  sim.start();
+    sim.start();
 
-  // Turret visualization in AdvantageScope
-  turretSimVisualizer = new TurretSimVisualizer(driveSubsystem, turretSubsystem);
-}
+    // Turret visualization in AdvantageScope
+    turretSimVisualizer = new TurretSimVisualizer(driveSubsystem, turretSubsystem);
+    shooterHoodSim = new ShooterHoodSim();
+  }
 
   public static void AutonomousConfigure() {
     SignalLogger.start();
@@ -302,7 +304,7 @@ public class RobotContainer {
       if (!shouldResetOdometryToStartingPose) {
         return AutoBuilder.followPath(path);
       } else { // reset odometry the right way
-        System.out.println("== Driving from "+startPose+" to "+endPose);
+        System.out.println("== Driving from " + startPose + " to " + endPose);
         return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
       }
     } catch (Exception e) {
@@ -310,7 +312,7 @@ public class RobotContainer {
       return Commands.none();
     }
   }
-  
+
   public Command stopRobotCommand() {
     System.out.println("***Stopping Robot");
     return driveSubsystem.applyRequest(() -> driveSubsystem.getDrive().withVelocityX(0) // Drive forward with negative Y
@@ -325,10 +327,10 @@ public class RobotContainer {
     new JoystickButton(xboxDriveController, 1)
         .onTrue(new BLUE_OneMeterForwardPPCommand());
     new JoystickButton(xboxDriveController, 2)
-    .onTrue(new BLUE_ThreeMeterForwardPPCommand());
+        .onTrue(new BLUE_ThreeMeterForwardPPCommand());
     // new JoystickButton(xboxDriveController, 2)
-    //     .onTrue(new ReturnTestPPCommand())
-    //     .onFalse(new StopRobot());
+    // .onTrue(new ReturnTestPPCommand())
+    // .onFalse(new StopRobot());
     new JoystickButton(xboxDriveController, 3)
         .onTrue(new InstantCommand(
             () -> questNavSubsystem.resetQuestOdometry(new Pose3d(10, 10, 0, new Rotation3d(0, 0, Math.PI))))); // TODO:
@@ -345,8 +347,10 @@ public class RobotContainer {
   }
 
   private void testTurretShooter() {
-     // ---------------- Turret + Shooter prototype bindings (Joystick port 0) ----------------
-    // Shooter: button 3 = run shooter (at current target, or DEFAULT_RPM). Release stops.
+    // ---------------- Turret + Shooter prototype bindings (Joystick port 0)
+    // ----------------
+    // Shooter: button 3 = run shooter (at current target, or DEFAULT_RPM). Release
+    // stops.
     new JoystickButton(turretStick, 3).whileTrue(new ShooterEnableCommand(shooterSubsystem));
 
     // Shooter: button 1/2 adjust RPM setpoint by +/- RPM_STEP.
@@ -369,7 +373,8 @@ public class RobotContainer {
     new JoystickButton(turretStick, 9).whileTrue(turretSubsystem.sysIdDynamic(Direction.kForward));
     new JoystickButton(turretStick, 10).whileTrue(turretSubsystem.sysIdDynamic(Direction.kReverse));
 
-    // Shooter SysId: button 11/12 quasistatic fwd/rev (dynamic can be added if you reassign buttons).
+    // Shooter SysId: button 11/12 quasistatic fwd/rev (dynamic can be added if you
+    // reassign buttons).
     new JoystickButton(turretStick, 11).whileTrue(shooterSubsystem.sysIdQuasistatic(Direction.kForward));
     new JoystickButton(turretStick, 12).whileTrue(shooterSubsystem.sysIdQuasistatic(Direction.kReverse));
   }
@@ -406,7 +411,7 @@ public class RobotContainer {
       boolean shouldResetOdometryToStartingPose, boolean flipTrajectory) {
 
     // alex test
-    //System.out.println("Start drive routine");
+    // System.out.println("Start drive routine");
 
     try {
       // Load the path you want to follow using its name in the GUI

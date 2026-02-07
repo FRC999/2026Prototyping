@@ -115,9 +115,9 @@ public class RobotContainer {
 
     AutonomousConfigure();
 
-    if (RobotBase.isSimulation()) {
+    /*if (RobotBase.isSimulation()) {
       configureSimulation();
-    }
+    }*/
 
     if (RobotBase.isSimulation()) {
       new JoystickButton(xboxDriveController, 9).whileTrue(

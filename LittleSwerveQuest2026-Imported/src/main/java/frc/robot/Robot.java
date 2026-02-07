@@ -54,7 +54,7 @@ public class Robot extends TimedRobot {
     }
     RobotContainer.setIfAllianceRed();
 
-    
+
   }
 
   @Override

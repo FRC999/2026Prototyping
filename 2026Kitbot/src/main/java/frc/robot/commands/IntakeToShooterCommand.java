@@ -22,7 +22,7 @@ public class IntakeToShooterCommand extends Command {
   public void initialize() {
     System.out.println("This is the Right Bumper");
     RobotContainer.intakeShooterSubsystem.setIntakeMotor(IntakeConstants.intakeImmShootSpeed);
-    RobotContainer.hopperSubsystem.setHopperMotor(0);
+    RobotContainer.hopperSubsystem.setHopperMotor(-IntakeConstants.hopperSpeed);
   }
 
   // Called every time the scheduler runs while the command is scheduled.
